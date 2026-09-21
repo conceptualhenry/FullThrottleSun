@@ -4,7 +4,7 @@
 PlayerSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 30
-  productGUID: 836f8d9ea27baee458ffdabd29889cc1
+  productGUID: 52f86a56ec3ea0e439e0cae45403d1c2
   AndroidProfiler: 0
   AndroidFilterTouchesWhenObscured: 0
   AndroidEnableSustainedPerformanceMode: 0
@@ -182,7 +182,7 @@ PlayerSettings:
   AndroidBundleVersionCode: 1
   AndroidMinSdkVersion: 26
   AndroidTargetSdkVersion: 0
-  AndroidPreferredInstallLocation: 1
+  AndroidPreferredInstallLocation: 0
   AndroidPreferredDataLocation: 1
   aotOptions: 
   stripEngineCode: 1
@@ -935,10 +935,10 @@ PlayerSettings:
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
   enableDirectStorage: 0
-  cloudProjectId: 598d6b5b-cea5-4cc3-aadc-5b154ca25acd
+  cloudProjectId: 677676bb-6cbe-4081-a5f6-853c35b73d67
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: FullThrottleSun
+  projectName: FullThrottleSun 2026-09-21_00-48-53
   organizationId: conceptualhenry
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
