@@ -20,6 +20,12 @@ namespace FullThrottleSun.Controller
         public float sampleRate;
         public string status;
 
+        /// <summary>Bias-corrected angular velocity integrated per HID report, in degrees. Drifts slowly over time.</summary>
+        public Vector3 integratedAngle;
+        /// <summary>Average angular velocity measured during the last calibration, in °/s.</summary>
+        public Vector3 gyroBias;
+        public bool isCalibrating;
+
         /// <summary>Approximate, uncalibrated: ±2000 °/s over the int16 range.</summary>
         public Vector3 AngularVelocity => (Vector3)rawGyro * DualSenseMotion.GyroDegreesPerUnit;
 
@@ -62,6 +68,36 @@ namespace FullThrottleSun.Controller
         public static bool IsAvailable => Current.hasMotionData;
         public static Vector3 AngularVelocity => Current.AngularVelocity;
         public static Vector3 Acceleration => Current.Acceleration;
+        public static Vector3 IntegratedAngle => Current.integratedAngle;
+        public static bool IsCalibrating
+        {
+            get
+            {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+                return reader != null && reader.IsCalibrating;
+#else
+                return false;
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Averages the gyro for the given time to measure its resting bias, then zeroes IntegratedAngle.
+        /// Sampling starts after a short settle delay and restarts whenever the controller moves.
+        /// </summary>
+        public static void Calibrate(float seconds = 1f)
+        {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            reader?.Calibrate(seconds);
+#endif
+        }
+
+        public static void ResetAngle()
+        {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            reader?.ResetAngle();
+#endif
+        }
 
         internal static void Start()
         {

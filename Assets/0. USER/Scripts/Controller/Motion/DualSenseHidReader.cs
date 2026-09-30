@@ -28,17 +28,71 @@ namespace FullThrottleSun.Controller
         const int TimestampOffset = 27;
 
         const int RescanIntervalMs = 1000;
+        const int ReconnectDelayMs = 200;
         const int ReadWaitMs = 100;
+        // The DualSense streams reports continuously, so a gap this long means the handle stopped delivering.
+        const int StallTimeoutMs = 1000;
+        const double MaxIntegrationStep = 0.1;
+
+        // Pressing the bind button shakes the controller, so sampling starts only after it settles.
+        const double CalibrationSettleSeconds = 0.3;
+        // Spread (max - min) of any axis above this during calibration means the controller moved; sampling restarts.
+        const float CalibrationMotionTolerance = 8f;
+        // Corrected rates below this (°/s) are treated as sensor noise: not integrated, and used to track bias drift.
+        const float StillDeadband = 0.8f;
+        const float BiasTrackingTimeConstant = 3f;
 
         readonly object sampleLock = new object();
+        readonly Stopwatch clock = Stopwatch.StartNew();
         DualSenseMotionSample latest = new DualSenseMotionSample { status = "Starting" };
 
         Thread thread;
         volatile bool running;
 
+        double lastSampleTime = -1;
+        double angleX, angleY, angleZ;
+        Vector3 gyroBias;
+        bool calibrating;
+        double calibrationDuration;
+        double calibrationStartTime;
+        Vector3 calibrationSum;
+        Vector3 calibrationMin;
+        Vector3 calibrationMax;
+        int calibrationCount;
+
         public DualSenseMotionSample Latest
         {
             get { lock (sampleLock) return latest; }
+        }
+
+        public bool IsCalibrating
+        {
+            get { lock (sampleLock) return calibrating; }
+        }
+
+        public void Calibrate(float seconds)
+        {
+            lock (sampleLock)
+            {
+                calibrating = true;
+                calibrationDuration = seconds;
+                RestartCalibrationWindow(clock.Elapsed.TotalSeconds);
+            }
+        }
+
+        void RestartCalibrationWindow(double now)
+        {
+            calibrationStartTime = now + CalibrationSettleSeconds;
+            calibrationSum = Vector3.zero;
+            calibrationMin = Vector3.positiveInfinity;
+            calibrationMax = Vector3.negativeInfinity;
+            calibrationCount = 0;
+        }
+
+        public void ResetAngle()
+        {
+            lock (sampleLock)
+                angleX = angleY = angleZ = 0;
         }
 
         public void Start()
@@ -77,10 +131,11 @@ namespace FullThrottleSun.Controller
                     UnityEngine.Debug.LogWarning($"[DualSenseMotion] {e.Message}");
                 }
 
+                lastSampleTime = -1;
                 if (running)
                 {
-                    Publish(new DualSenseMotionSample { status = "Disconnected, searching..." });
-                    Thread.Sleep(RescanIntervalMs);
+                    Publish(new DualSenseMotionSample { status = "Reconnecting..." });
+                    Thread.Sleep(ReconnectDelayMs);
                 }
             }
         }
@@ -122,6 +177,7 @@ namespace FullThrottleSun.Controller
             var rateTimer = Stopwatch.StartNew();
             int reportsThisSecond = 0;
             float sampleRate = 0f;
+            long lastReportMs = clock.ElapsedMilliseconds;
 
             try
             {
@@ -138,16 +194,20 @@ namespace FullThrottleSun.Controller
 
                         while (!readEvent.WaitOne(ReadWaitMs))
                         {
-                            if (running)
+                            bool stalled = clock.ElapsedMilliseconds - lastReportMs > StallTimeoutMs;
+                            if (running && !stalled)
                                 continue;
                             Native.CancelIoEx(handle, overlapped);
                             Native.GetOverlappedResult(handle, overlapped, out _, true);
+                            if (stalled)
+                                UnityEngine.Debug.Log("[DualSenseMotion] No reports for 1s, reopening device");
                             return;
                         }
 
                         if (!Native.GetOverlappedResult(handle, overlapped, out int bytesRead, false))
                             return;
 
+                        lastReportMs = clock.ElapsedMilliseconds;
                         reportsThisSecond++;
                         if (rateTimer.ElapsedMilliseconds >= 1000)
                         {
@@ -208,8 +268,66 @@ namespace FullThrottleSun.Controller
 
         void Publish(DualSenseMotionSample sample)
         {
+            double now = clock.Elapsed.TotalSeconds;
+
             lock (sampleLock)
+            {
+                if (sample.hasMotionData)
+                {
+                    Vector3 rate = sample.AngularVelocity;
+                    double dt = lastSampleTime >= 0 ? Math.Min(now - lastSampleTime, MaxIntegrationStep) : 0;
+                    lastSampleTime = now;
+
+                    if (calibrating)
+                        AccumulateCalibration(rate, now);
+                    else
+                        Integrate(rate, (float)dt);
+                }
+
+                sample.integratedAngle = new Vector3((float)angleX, (float)angleY, (float)angleZ);
+                sample.gyroBias = gyroBias;
+                sample.isCalibrating = calibrating;
                 latest = sample;
+            }
+        }
+
+        void AccumulateCalibration(Vector3 rate, double now)
+        {
+            if (now < calibrationStartTime)
+                return;
+
+            calibrationSum += rate;
+            calibrationMin = Vector3.Min(calibrationMin, rate);
+            calibrationMax = Vector3.Max(calibrationMax, rate);
+            calibrationCount++;
+
+            Vector3 spread = calibrationMax - calibrationMin;
+            if (spread.x > CalibrationMotionTolerance || spread.y > CalibrationMotionTolerance || spread.z > CalibrationMotionTolerance)
+            {
+                RestartCalibrationWindow(now);
+                return;
+            }
+
+            if (now >= calibrationStartTime + calibrationDuration)
+            {
+                gyroBias = calibrationSum / calibrationCount;
+                calibrating = false;
+                angleX = angleY = angleZ = 0;
+            }
+        }
+
+        void Integrate(Vector3 rate, float dt)
+        {
+            Vector3 corrected = rate - gyroBias;
+            if (corrected.magnitude < StillDeadband)
+            {
+                gyroBias += corrected * Mathf.Clamp01(dt / BiasTrackingTimeConstant);
+                return;
+            }
+
+            angleX += corrected.x * dt;
+            angleY += corrected.y * dt;
+            angleZ += corrected.z * dt;
         }
 
         static void GetCaps(SafeFileHandle handle, out int inputLength, out int featureLength)

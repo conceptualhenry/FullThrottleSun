@@ -95,6 +95,14 @@ namespace FullThrottleSun.Controller
                 DrawCenteredBar("Z", accel.z, AccelDisplayRange, m.rawAccel.z);
 
                 EditorGUILayout.LabelField("Sensor timestamp", m.sensorTimestamp.ToString());
+
+                EditorGUILayout.Space();
+                GUILayout.Label("Integrated angle (°)", EditorStyles.miniBoldLabel);
+                EditorGUILayout.LabelField("Angle X / Y / Z",
+                    $"{m.integratedAngle.x:0.0}   {m.integratedAngle.y:0.0}   {m.integratedAngle.z:0.0}");
+                EditorGUILayout.LabelField("Gyro bias (°/s)",
+                    $"{m.gyroBias.x:0.00}   {m.gyroBias.y:0.00}   {m.gyroBias.z:0.00}");
+                EditorGUILayout.LabelField("Calibrating", m.isCalibrating ? "Yes, keep the controller still" : "No");
             }
         }
 

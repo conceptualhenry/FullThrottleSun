@@ -12,6 +12,7 @@ namespace FullThrottleSun.Controller
         const string ActionsResourcePath = "VirtualControllerActions";
 
         IControllerSource source;
+        InputSettings originalSettings;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
@@ -26,6 +27,8 @@ namespace FullThrottleSun.Controller
 
         void Awake()
         {
+            KeepDevicesEnabledWhenUnfocused();
+
             var actions = Resources.Load<InputActionAsset>(ActionsResourcePath);
             if (actions == null)
             {
@@ -52,6 +55,35 @@ namespace FullThrottleSun.Controller
 
         void Update() => VirtualController.Tick();
 
-        void OnDestroy() => VirtualController.SetSource(null);
+        void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+                return;
+            foreach (var device in InputSystem.devices)
+            {
+                if (device is Gamepad && !device.enabled)
+                    InputSystem.EnableDevice(device);
+            }
+        }
+
+        void OnDestroy()
+        {
+            VirtualController.SetSource(null);
+            if (originalSettings != null)
+                InputSystem.settings = originalSettings;
+        }
+
+        /// <summary>
+        /// By default the Input System resets and disables gamepads when the app loses focus, and the DualSense
+        /// does not always come back afterwards. A runtime copy is used so the project's settings asset is untouched.
+        /// </summary>
+        void KeepDevicesEnabledWhenUnfocused()
+        {
+            originalSettings = InputSystem.settings;
+            var settings = Instantiate(originalSettings);
+            settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings = settings;
+        }
     }
 }
