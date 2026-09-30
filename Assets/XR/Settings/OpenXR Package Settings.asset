@@ -63,7 +63,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6a75d1f5ff90154ea2a8e58222a1f59, type: 3}
   m_Name: FoveatedRenderingFeature Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.FoveatedRenderingFeature
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Foveated Rendering
   version: 1
   featureIdInternal: com.unity.openxr.feature.foveatedrendering
@@ -824,55 +824,55 @@ MonoBehaviour:
   m_Name: Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.OpenXRSettings
   features:
-  - {fileID: 8495814956053202275}
-  - {fileID: 2345566261483064715}
-  - {fileID: -7838881242243711125}
-  - {fileID: -4480710953055988394}
-  - {fileID: -8025058163055774608}
-  - {fileID: 4961650098257225744}
-  - {fileID: 6903273238864750897}
-  - {fileID: 4764701692475092624}
-  - {fileID: 1577950362465490462}
-  - {fileID: -5640494166975487286}
-  - {fileID: -8626235886806092385}
-  - {fileID: -7480292028706873717}
-  - {fileID: 8048337683932495532}
-  - {fileID: 6641444190815277026}
-  - {fileID: -4886479716440627042}
-  - {fileID: 4142048647043796153}
-  - {fileID: -9140696689476263586}
-  - {fileID: 190288026287562062}
-  - {fileID: -4548416238495720518}
-  - {fileID: -3615187009028096634}
-  - {fileID: -331756119392425563}
-  - {fileID: 2974422170236382410}
-  - {fileID: -6017905248822096156}
-  - {fileID: 5490956755081502791}
-  - {fileID: 5900103275449781688}
-  - {fileID: 3378095703346736542}
-  - {fileID: -4755305217357735424}
-  - {fileID: -7780350635741667476}
-  - {fileID: -915504551784155293}
-  - {fileID: -8813263012398369067}
-  - {fileID: -1380779275753043173}
-  - {fileID: 3116779181921435685}
-  - {fileID: 8908448193305105338}
-  - {fileID: -127025037393436180}
   - {fileID: -6296427638561159637}
-  - {fileID: 6327343903516706515}
   - {fileID: -6276636386963086301}
-  - {fileID: 5329028225785360049}
-  - {fileID: 1116881963637889059}
-  - {fileID: -4048146901138577491}
-  - {fileID: 1285870217310291713}
   - {fileID: -7432384155879881695}
-  - {fileID: 4266212265700787770}
-  - {fileID: -1985649062423683569}
-  - {fileID: -3302413616272623845}
-  - {fileID: 3596815482537558097}
+  - {fileID: 5329028225785360049}
   - {fileID: 3703611705731374279}
+  - {fileID: 1285870217310291713}
+  - {fileID: 4266212265700787770}
+  - {fileID: 3596815482537558097}
+  - {fileID: -4048146901138577491}
+  - {fileID: 6327343903516706515}
+  - {fileID: -1985649062423683569}
   - {fileID: 8958777978043499013}
+  - {fileID: -3302413616272623845}
   - {fileID: -270353154749595358}
+  - {fileID: -3615187009028096634}
+  - {fileID: 1116881963637889059}
+  - {fileID: -4480710953055988394}
+  - {fileID: -4548416238495720518}
+  - {fileID: 1577950362465490462}
+  - {fileID: 6641444190815277026}
+  - {fileID: -5640494166975487286}
+  - {fileID: -7780350635741667476}
+  - {fileID: 8908448193305105338}
+  - {fileID: 190288026287562062}
+  - {fileID: 2974422170236382410}
+  - {fileID: 3116779181921435685}
+  - {fileID: 4764701692475092624}
+  - {fileID: 6903273238864750897}
+  - {fileID: -6017905248822096156}
+  - {fileID: -331756119392425563}
+  - {fileID: -1380779275753043173}
+  - {fileID: 4961650098257225744}
+  - {fileID: 3378095703346736542}
+  - {fileID: 5900103275449781688}
+  - {fileID: -7838881242243711125}
+  - {fileID: -4886479716440627042}
+  - {fileID: -8626235886806092385}
+  - {fileID: 8048337683932495532}
+  - {fileID: 4142048647043796153}
+  - {fileID: -127025037393436180}
+  - {fileID: -915504551784155293}
+  - {fileID: 2345566261483064715}
+  - {fileID: 5490956755081502791}
+  - {fileID: -7480292028706873717}
+  - {fileID: -4755305217357735424}
+  - {fileID: 8495814956053202275}
+  - {fileID: -9140696689476263586}
+  - {fileID: -8813263012398369067}
+  - {fileID: -8025058163055774608}
   customLoaderName: 
   m_renderMode: 1
   m_latencyOptimization: 0
@@ -924,7 +924,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5019471fb2174e5c852ecd4047163007, type: 3}
   m_Name: HandInteractionProfile Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.HandInteractionProfile
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Hand Interaction Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handinteraction
@@ -1051,7 +1051,7 @@ MonoBehaviour:
   nameUi: 'Android XR: Anchors'
   version: 0.1.0
   featureIdInternal: com.unity.openxr.feature.arfoundation-androidxr-anchor
-  openxrExtensionStrings: XR_ANDROID_trackables XR_ANDROID_device_anchor_persistence
+  openxrExtensionStrings: XR_ANDROID_trackables
   company: Unity Technologies
   priority: 0
   targetOpenXRApiVersion: 
@@ -2002,7 +2002,7 @@ MonoBehaviour:
   nameUi: 'Android XR: Anchors'
   version: 0.1.0
   featureIdInternal: com.unity.openxr.feature.arfoundation-androidxr-anchor
-  openxrExtensionStrings: XR_ANDROID_trackables XR_ANDROID_device_anchor_persistence
+  openxrExtensionStrings: XR_ANDROID_trackables
   company: Unity Technologies
   priority: 0
   targetOpenXRApiVersion: 
@@ -2108,7 +2108,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90ae1e8c3c7a542bba339faf2e771c5a, type: 3}
   m_Name: AndroidXRSupportFeature Android
   m_EditorClassIdentifier: Unity.XR.AndroidOpenXR::UnityEngine.XR.OpenXR.Features.Android.AndroidXRSupportFeature
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Android XR Support
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.androidxr-support
