@@ -26,6 +26,7 @@ public class CarMovement : MonoBehaviour
     float carVal;
     float turnVal;
     Vector2 moveDirection;
+    [SerializeField] float maxCarSpeed;
 
     float accelSpeed;
 
@@ -61,7 +62,12 @@ public class CarMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        rb.AddForce(transform.forward * carSpeed * carVal);
+        if (Mathf.Abs(rb.linearVelocity.x) + Mathf.Abs(rb.linearVelocity.z) < maxCarSpeed)
+        {
+            rb.AddForce(transform.forward * carSpeed * carVal);
+        }
+
+        print(rb.linearVelocity);
 
         if (turnVal != 0)
         {
