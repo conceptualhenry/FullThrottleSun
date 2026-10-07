@@ -26,6 +26,14 @@ namespace FullThrottleSun.Controller
         public Vector3 gyroBias;
         public bool isCalibrating;
 
+        /// <summary>
+        /// Rotation about the gyro Y axis since calibration, in degrees, for a controller held upright like a steering wheel.
+        /// Gyro integrated, then pulled toward the angle of gravity so it does not drift.
+        /// </summary>
+        public float uprightAngle;
+        /// <summary>False while gravity can't correct uprightAngle (held flat, or shaken), it then runs on gyro alone.</summary>
+        public bool uprightGravityValid;
+
         /// <summary>Approximate, uncalibrated: ±2000 °/s over the int16 range.</summary>
         public Vector3 AngularVelocity => (Vector3)rawGyro * DualSenseMotion.GyroDegreesPerUnit;
 
@@ -69,6 +77,7 @@ namespace FullThrottleSun.Controller
         public static Vector3 AngularVelocity => Current.AngularVelocity;
         public static Vector3 Acceleration => Current.Acceleration;
         public static Vector3 IntegratedAngle => Current.integratedAngle;
+        public static float UprightAngle => Current.uprightAngle;
         public static bool IsCalibrating
         {
             get

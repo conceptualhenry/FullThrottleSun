@@ -42,6 +42,16 @@ namespace FullThrottleSun.Controller
         const float StillDeadband = 0.8f;
         const float BiasTrackingTimeConstant = 3f;
 
+        // Upright steering: how fast (s) the gyro angle is pulled toward the gravity angle. Longer = smoother, slower to fix drift.
+        const float UprightGravityTimeConstant = 0.6f;
+        // Gravity only gives the angle when enough of it lies in the plane the controller turns in (not held flat).
+        const float UprightMinPlanarGravity = 0.5f;
+        // Total acceleration outside this range (g) means the controller is being shaken: trust the gyro alone.
+        const float UprightMinG = 0.8f;
+        const float UprightMaxG = 1.2f;
+        // Gyro steps below this (°) are too small to tell which way gravity turns relative to the gyro.
+        const float UprightSignStep = 0.2f;
+
         readonly object sampleLock = new object();
         readonly Stopwatch clock = Stopwatch.StartNew();
         DualSenseMotionSample latest = new DualSenseMotionSample { status = "Starting" };
@@ -58,7 +68,15 @@ namespace FullThrottleSun.Controller
         Vector3 calibrationSum;
         Vector3 calibrationMin;
         Vector3 calibrationMax;
+        Vector3 calibrationAccelSum;
         int calibrationCount;
+
+        Vector3 gravityReference;
+        double uprightAngle;
+        bool uprightGravityValid;
+        bool hasLastGravityAngle;
+        float lastGravityAngle;
+        double uprightSignCorrelation;
 
         public DualSenseMotionSample Latest
         {
@@ -84,6 +102,7 @@ namespace FullThrottleSun.Controller
         {
             calibrationStartTime = now + CalibrationSettleSeconds;
             calibrationSum = Vector3.zero;
+            calibrationAccelSum = Vector3.zero;
             calibrationMin = Vector3.positiveInfinity;
             calibrationMax = Vector3.negativeInfinity;
             calibrationCount = 0;
@@ -92,7 +111,7 @@ namespace FullThrottleSun.Controller
         public void ResetAngle()
         {
             lock (sampleLock)
-                angleX = angleY = angleZ = 0;
+                angleX = angleY = angleZ = uprightAngle = 0;
         }
 
         public void Start()
@@ -279,24 +298,32 @@ namespace FullThrottleSun.Controller
                     lastSampleTime = now;
 
                     if (calibrating)
-                        AccumulateCalibration(rate, now);
+                    {
+                        AccumulateCalibration(rate, sample.Acceleration, now);
+                    }
                     else
+                    {
                         Integrate(rate, (float)dt);
+                        IntegrateUpright(rate, sample.Acceleration, (float)dt);
+                    }
                 }
 
                 sample.integratedAngle = new Vector3((float)angleX, (float)angleY, (float)angleZ);
                 sample.gyroBias = gyroBias;
                 sample.isCalibrating = calibrating;
+                sample.uprightAngle = (float)uprightAngle;
+                sample.uprightGravityValid = uprightGravityValid;
                 latest = sample;
             }
         }
 
-        void AccumulateCalibration(Vector3 rate, double now)
+        void AccumulateCalibration(Vector3 rate, Vector3 accel, double now)
         {
             if (now < calibrationStartTime)
                 return;
 
             calibrationSum += rate;
+            calibrationAccelSum += accel;
             calibrationMin = Vector3.Min(calibrationMin, rate);
             calibrationMax = Vector3.Max(calibrationMax, rate);
             calibrationCount++;
@@ -311,9 +338,49 @@ namespace FullThrottleSun.Controller
             if (now >= calibrationStartTime + calibrationDuration)
             {
                 gyroBias = calibrationSum / calibrationCount;
+                gravityReference = calibrationAccelSum / calibrationCount;
                 calibrating = false;
                 angleX = angleY = angleZ = 0;
+                uprightAngle = 0;
+                hasLastGravityAngle = false;
             }
+        }
+
+        /// <summary>
+        /// Complementary filter for the upright pose: the gyro gives smooth short-term motion, the direction of gravity
+        /// in the controller's XZ plane gives the absolute angle since calibration and removes long-term drift.
+        /// </summary>
+        void IntegrateUpright(Vector3 rate, Vector3 accel, float dt)
+        {
+            float gyroStep = (rate.y - gyroBias.y) * dt;
+            uprightAngle += gyroStep;
+
+            var planar = new Vector3(accel.x, 0f, accel.z);
+            var reference = new Vector3(gravityReference.x, 0f, gravityReference.z);
+            float g = accel.magnitude;
+            uprightGravityValid = g > UprightMinG && g < UprightMaxG
+                                  && planar.magnitude > UprightMinPlanarGravity * g
+                                  && reference.magnitude > UprightMinPlanarGravity * gravityReference.magnitude;
+            if (!uprightGravityValid)
+            {
+                hasLastGravityAngle = false;
+                return;
+            }
+
+            // Turning the controller by +θ turns gravity by -θ in the controller's frame.
+            float gravityAngle = -Mathf.Atan2(Vector3.Cross(reference, planar).y, Vector3.Dot(reference, planar)) * Mathf.Rad2Deg;
+
+            // Guards against the accelerometer axes turning the other way than the gyro on some firmware.
+            if (hasLastGravityAngle && Mathf.Abs(gyroStep) > UprightSignStep)
+                uprightSignCorrelation = Math.Max(-1000.0, Math.Min(1000.0,
+                    uprightSignCorrelation + gyroStep * Mathf.DeltaAngle(lastGravityAngle, gravityAngle)));
+            lastGravityAngle = gravityAngle;
+            hasLastGravityAngle = true;
+            if (uprightSignCorrelation < 0)
+                gravityAngle = -gravityAngle;
+
+            double target = uprightAngle + Mathf.DeltaAngle((float)uprightAngle, gravityAngle);
+            uprightAngle += (target - uprightAngle) * Mathf.Clamp01(dt / UprightGravityTimeConstant);
         }
 
         void Integrate(Vector3 rate, float dt)

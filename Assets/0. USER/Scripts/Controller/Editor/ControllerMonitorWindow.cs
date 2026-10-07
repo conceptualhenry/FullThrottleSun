@@ -103,6 +103,8 @@ namespace FullThrottleSun.Controller
                 EditorGUILayout.LabelField("Gyro bias (°/s)",
                     $"{m.gyroBias.x:0.00}   {m.gyroBias.y:0.00}   {m.gyroBias.z:0.00}");
                 EditorGUILayout.LabelField("Calibrating", m.isCalibrating ? "Yes, keep the controller still" : "No");
+                EditorGUILayout.LabelField("Upright angle (°)",
+                    $"{m.uprightAngle:0.0}   {(m.uprightGravityValid ? "gravity corrected" : "gyro only")}");
             }
         }
 

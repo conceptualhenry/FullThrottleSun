@@ -1,6 +1,6 @@
 ﻿<Solution>
-  <Project Path="FullThrottleSun.Controller.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="FullThrottleSun.Controller.csproj" />
   <Project Path="FullThrottleSun.Controller.Editor.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>
