@@ -12,20 +12,18 @@ public class WorldGen : MonoBehaviour
     public GameObject toSpawn;
     public Direction spawnDirection;
 
-    public float chunkWidth;
-    public float genDist;
+    [SerializeField] float chunkWidth;
+    [SerializeField] public float genDist;
 
-    [SerializeField] Vector3 exitN;
-    [SerializeField] Vector3 exitS;
-    [SerializeField] Vector3 exitE;
-    [SerializeField] Vector3 exitW;
+    Vector3 exitN;
+    Vector3 exitS;
+    Vector3 exitE;
+    Vector3 exitW;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         setExits();
-        print(currentChunk.centerPt);
-        //generateChunk(Direction.North);
     }
 
     // Update is called once per frame
