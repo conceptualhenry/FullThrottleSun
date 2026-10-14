@@ -1424,6 +1424,10 @@ PrefabInstance:
       value: worldGenerator
       objectReference: {fileID: 0}
     - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
+      propertyPath: genDist
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
       propertyPath: toSpawn
       value: 
       objectReference: {fileID: 7614036385077930877, guid: 228c5cfab5213904dbea7d22859c72cb, type: 3}
