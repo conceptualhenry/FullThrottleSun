@@ -8,8 +8,11 @@ namespace FullThrottleSun.Vehicle
     /// longitudinal slip ratio and lateral slip angle, limited by a friction circle (μ × load × surface grip).
     /// A wheel entry is one spinning body: give it several contact offsets when one mesh is a solid axle.
     ///
-    /// Gamepad only, through VirtualController. On a PlayStation pad: R2 throttle, L2 brake / reverse,
-    /// left stick steer, Cross handbrake. Gyro steering: hold the DualSense still and press Options to bind, again to recenter.
+    /// Input through VirtualController. PlayStation pad: R2 throttle, L2 brake / reverse, left stick steer, Cross handbrake.
+    /// Gyro steering: hold the DualSense still and press Options to bind, again to recenter.
+    /// Quest controllers: same layout (A handbrake); the cockpit wheel is grabbed by hand through SteeringWheelGrab.
+    /// The steering wheel always shows the input (full lock = steeringWheelLock); speed only shrinks how far the front
+    /// wheels follow it, like a variable steering ratio.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class TireFrictionCar : MonoBehaviour
@@ -116,8 +119,8 @@ namespace FullThrottleSun.Vehicle
         [SerializeField] ControllerHand gyroBindHand = ControllerHand.Left;
         [Tooltip("Optional cockpit steering wheel, spun around its local Z axis.")]
         [SerializeField] Transform steeringWheel;
-        [Tooltip("Steering wheel degrees per degree of front wheel angle.")]
-        [SerializeField] float steeringWheelRatio = 10f;
+        [Tooltip("Steering wheel rotation (degrees) from centre to full steering input.")]
+        [Range(0f, 720f)] [SerializeField] float steeringWheelLock = 225f;
 
         [Header("Suspension")]
         [Min(0.01f)] [SerializeField] float wheelRadius = 0.355f;
@@ -142,9 +145,25 @@ namespace FullThrottleSun.Vehicle
         [SerializeField] bool handbrakeInput;
         [SerializeField] float steerAngle;
         [SerializeField] bool gyroBound;
+        [SerializeField] float wheelInput;
+        [SerializeField] bool wheelHeld;
 
         Rigidbody rb;
         Quaternion steeringWheelRest;
+        float steerLimit;
+
+        public Transform SteeringWheel => steeringWheel;
+        public float SteeringWheelLock => steeringWheelLock;
+
+        /// <summary>
+        /// Steering from a hand on the cockpit wheel, −1..1 with right positive. Adds to the stick. While held, the
+        /// wheel model follows this exactly so the hand stays on it.
+        /// </summary>
+        public void SetWheelInput(float input, bool held)
+        {
+            wheelInput = Mathf.Clamp(input, -1f, 1f);
+            wheelHeld = held;
+        }
         readonly RaycastHit[] hitBuffer = new RaycastHit[8];
         Contact[] contacts = new Contact[4];
 
@@ -152,6 +171,7 @@ namespace FullThrottleSun.Vehicle
         {
             rb = GetComponent<Rigidbody>();
             rb.centerOfMass = centerOfMass;
+            steerLimit = maxSteerAngle;
 
             foreach (var wheel in wheels)
             {
@@ -186,7 +206,7 @@ namespace FullThrottleSun.Vehicle
             speedKmh = forwardSpeed * 3.6f;
 
             float speedBlend = Mathf.Clamp01(Mathf.Abs(speedKmh) / highSpeed);
-            float steerLimit = Mathf.Lerp(maxSteerAngle, highSpeedSteerAngle, speedBlend);
+            steerLimit = Mathf.Lerp(maxSteerAngle, highSpeedSteerAngle, speedBlend);
             float steerRate = Mathf.Lerp(steerSpeed, highSpeedSteerSpeed, speedBlend);
             steerAngle = Mathf.MoveTowards(steerAngle, steerInput * steerLimit, steerRate * dt);
 
@@ -240,7 +260,10 @@ namespace FullThrottleSun.Vehicle
         {
             // Positive Z rotation is counter-clockwise seen from the driver, so a right turn spins it negative.
             if (steeringWheel != null)
-                steeringWheel.localRotation = steeringWheelRest * Quaternion.AngleAxis(-steerAngle * steeringWheelRatio, Vector3.forward);
+            {
+                float turn = wheelHeld ? wheelInput : steerLimit > 0f ? Mathf.Clamp(steerAngle / steerLimit, -1f, 1f) : 0f;
+                steeringWheel.localRotation = steeringWheelRest * Quaternion.AngleAxis(-turn * steeringWheelLock, Vector3.forward);
+            }
 
             foreach (var wheel in wheels)
             {
@@ -423,10 +446,10 @@ namespace FullThrottleSun.Vehicle
             steerInput = VirtualController.GetThumbstick(ControllerHand.Left).x;
             handbrakeInput = VirtualController.GetButton(ControllerButton.Primary, ControllerHand.Right);
 
-            if (useGyroSteering)
+            if (useGyroSteering && VirtualController.ActiveKind == ControllerKind.PlayStation)
                 ReadGyroSteering();
 
-            steerInput = Mathf.Clamp(steerInput, -1f, 1f);
+            steerInput = Mathf.Clamp(steerInput + wheelInput, -1f, 1f);
         }
 
         void ReadGyroSteering()

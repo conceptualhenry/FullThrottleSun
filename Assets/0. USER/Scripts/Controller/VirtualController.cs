@@ -1,18 +1,27 @@
+using System;
 using UnityEngine;
 
 namespace FullThrottleSun.Controller
 {
     /// <summary>
     /// Single entry point for reading VR-controller style input, regardless of the physical device.
+    /// Several devices can be connected at once (a gamepad and Quest controllers); the last one used drives it.
     /// </summary>
     public static class VirtualController
     {
-        static IControllerSource source;
+        static IControllerSource[] sources = Array.Empty<IControllerSource>();
+        static IControllerSource active;
+        static ControllerKind activeKind;
         static readonly VirtualControllerState[] current = new VirtualControllerState[2];
         static readonly VirtualControllerState[] previous = new VirtualControllerState[2];
 
-        public static bool IsConnected => source != null && source.IsAvailable;
-        public static string DeviceName => source != null ? source.DeviceName : string.Empty;
+        public static bool IsConnected => active != null && active.IsAvailable;
+        public static string DeviceName => IsConnected ? active.DeviceName : string.Empty;
+
+        /// <summary>Kind of device currently driving the virtual controller.</summary>
+        public static ControllerKind ActiveKind => activeKind;
+        public static bool IsTrackedController => activeKind == ControllerKind.MetaQuest || activeKind == ControllerKind.XR;
+        public static event Action<ControllerKind> ActiveKindChanged;
 
         public static VirtualControllerState GetState(ControllerHand hand) => current[(int)hand];
 
@@ -29,10 +38,12 @@ namespace FullThrottleSun.Controller
         public static bool GetButtonUp(ControllerButton button, ControllerHand hand)
             => !current[(int)hand].GetButton(button) && previous[(int)hand].GetButton(button);
 
-        internal static void SetSource(IControllerSource newSource)
+        internal static void SetSources(params IControllerSource[] newSources)
         {
-            source = newSource;
+            sources = newSources ?? Array.Empty<IControllerSource>();
+            active = null;
             ClearStates();
+            UpdateKind();
         }
 
         internal static void Tick()
@@ -40,21 +51,58 @@ namespace FullThrottleSun.Controller
             previous[0] = current[0];
             previous[1] = current[1];
 
-            if (!IsConnected)
+            var next = active != null && active.IsAvailable ? active : null;
+            var left = next != null ? next.GetState(ControllerHand.Left) : default;
+            var right = next != null ? next.GetState(ControllerHand.Right) : default;
+
+            // Only hand over while the current device is idle, so two devices in use at once don't flicker.
+            if (next == null || !(left.HasInput || right.HasInput))
             {
-                current[0] = default;
-                current[1] = default;
-                return;
+                foreach (var source in sources)
+                {
+                    if (source == next || !source.IsAvailable)
+                        continue;
+                    var sourceLeft = source.GetState(ControllerHand.Left);
+                    var sourceRight = source.GetState(ControllerHand.Right);
+                    bool used = sourceLeft.HasInput || sourceRight.HasInput;
+                    if (!used && next != null)
+                        continue;
+                    next = source;
+                    left = sourceLeft;
+                    right = sourceRight;
+                    if (used)
+                        break;
+                }
             }
 
-            current[0] = source.GetState(ControllerHand.Left);
-            current[1] = source.GetState(ControllerHand.Right);
+            if (next != active)
+            {
+                active = next;
+                // Cleared so the press that switched devices also counts as a button down.
+                previous[0] = previous[1] = default;
+            }
+
+            current[0] = left;
+            current[1] = right;
+            UpdateKind();
+        }
+
+        static void UpdateKind()
+        {
+            var kind = IsConnected ? active.Kind : ControllerKind.None;
+            if (kind == activeKind)
+                return;
+            activeKind = kind;
+            ActiveKindChanged?.Invoke(kind);
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
-            source = null;
+            sources = Array.Empty<IControllerSource>();
+            active = null;
+            activeKind = ControllerKind.None;
+            ActiveKindChanged = null;
             ClearStates();
         }
 

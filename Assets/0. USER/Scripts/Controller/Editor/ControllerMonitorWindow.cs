@@ -51,7 +51,9 @@ namespace FullThrottleSun.Controller
             {
                 scrollPosition = scroll.scrollPosition;
 
-                string device = VirtualController.IsConnected ? VirtualController.DeviceName : "No gamepad connected";
+                string device = VirtualController.IsConnected
+                    ? $"{VirtualController.DeviceName} ({VirtualController.ActiveKind})"
+                    : "No controller connected";
                 EditorGUILayout.LabelField("Device", device, EditorStyles.boldLabel);
                 EditorGUILayout.Space();
 

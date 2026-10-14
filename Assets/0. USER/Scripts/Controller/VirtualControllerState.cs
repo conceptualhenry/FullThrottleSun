@@ -8,6 +8,18 @@ namespace FullThrottleSun.Controller
         Right = 1
     }
 
+    public enum ControllerKind
+    {
+        None,
+        PlayStation,
+        Xbox,
+        /// <summary>Any other gamepad.</summary>
+        Gamepad,
+        MetaQuest,
+        /// <summary>Any other OpenXR controller.</summary>
+        XR
+    }
+
     public enum ControllerButton
     {
         /// <summary>A on the right hand, X on the left hand.</summary>
@@ -43,6 +55,16 @@ namespace FullThrottleSun.Controller
         public bool dpadDown;
         public bool dpadLeft;
         public bool dpadRight;
+
+        /// <summary>Tracked controllers only. Pose in the headset's tracking space, valid while isTracked.</summary>
+        public bool isTracked;
+        public Vector3 position;
+        public Quaternion rotation;
+
+        /// <summary>True when the player is actively using this controller (pose changes don't count).</summary>
+        public bool HasInput =>
+            trigger > 0.2f || grip > PressThreshold || thumbstick.sqrMagnitude > 0.09f
+            || primary || secondary || thumbstickClick || menu || dpadUp || dpadDown || dpadLeft || dpadRight;
 
         public bool GetButton(ControllerButton button)
         {

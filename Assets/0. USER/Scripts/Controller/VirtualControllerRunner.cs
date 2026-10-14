@@ -11,7 +11,7 @@ namespace FullThrottleSun.Controller
     {
         const string ActionsResourcePath = "VirtualControllerActions";
 
-        IControllerSource source;
+        IControllerSource[] sources;
         InputSettings originalSettings;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -37,19 +37,23 @@ namespace FullThrottleSun.Controller
                 return;
             }
 
-            source = new GamepadControllerSource(actions);
-            VirtualController.SetSource(source);
+            sources = new IControllerSource[] { new GamepadControllerSource(actions), new XRControllerSource() };
+            VirtualController.SetSources(sources);
         }
 
         void OnEnable()
         {
-            source?.Enable();
+            if (sources != null)
+                foreach (var source in sources)
+                    source.Enable();
             DualSenseMotion.Start();
         }
 
         void OnDisable()
         {
-            source?.Disable();
+            if (sources != null)
+                foreach (var source in sources)
+                    source.Disable();
             DualSenseMotion.Stop();
         }
 
@@ -68,7 +72,7 @@ namespace FullThrottleSun.Controller
 
         void OnDestroy()
         {
-            VirtualController.SetSource(null);
+            VirtualController.SetSources();
             if (originalSettings != null)
                 InputSystem.settings = originalSettings;
         }

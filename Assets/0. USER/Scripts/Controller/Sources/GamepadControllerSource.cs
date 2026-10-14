@@ -1,4 +1,6 @@
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.DualShock;
+using UnityEngine.InputSystem.XInput;
 
 namespace FullThrottleSun.Controller
 {
@@ -18,6 +20,18 @@ namespace FullThrottleSun.Controller
                 new HandActions(actions.FindActionMap("LeftHand", true)),
                 new HandActions(actions.FindActionMap("RightHand", true))
             };
+        }
+
+        public ControllerKind Kind
+        {
+            get
+            {
+                var pad = Gamepad.current;
+                if (pad == null) return ControllerKind.None;
+                if (pad is DualShockGamepad) return ControllerKind.PlayStation;
+                if (pad is XInputController) return ControllerKind.Xbox;
+                return ControllerKind.Gamepad;
+            }
         }
 
         public string DeviceName => Gamepad.current != null ? Gamepad.current.displayName : string.Empty;
