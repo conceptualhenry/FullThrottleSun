@@ -10,8 +10,9 @@ namespace FullThrottleSun.Vehicle
     /// (right stick click by default).
     /// Flat screen: the right stick looks around, orbiting the car in third person and turning the head in first person,
     /// and eases back to straight ahead once released.
-    /// VR headset active: the headset drives the view instead of the stick. The pose at recenter (Options, or the first
-    /// tracked frame) is mapped onto the driver eye, so leaning and turning the real head moves from there.
+    /// VR headset active: the headset drives the view. The pose at recenter (Options, or the first tracked frame) is
+    /// mapped onto the driver eye, so leaning and turning the real head moves from there. Stick look stays on top of
+    /// the head: sideways only in first person, and sideways only at all with Quest controllers.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class CarFollowCamera : MonoBehaviour
@@ -98,15 +99,17 @@ namespace FullThrottleSun.Vehicle
 
         /// <summary>
         /// Maps a pose from the headset's tracking space (e.g. a controller) into the target's local space, using the
-        /// same calibration as the head: the calibrated head lands on the driver eye. First person only.
+        /// same calibration as the head: the calibrated head lands on the driver eye. In third person it is as if the
+        /// player still sat in the driver seat.
         /// </summary>
         public bool TryTrackedToTarget(Vector3 position, Quaternion rotation, out Vector3 localPosition, out Quaternion localRotation)
         {
             localPosition = default;
             localRotation = Quaternion.identity;
-            if (!IsHeadTracked || !IsFirstPerson || target == null)
+            if (!IsHeadTracked || target == null || driverEye == null)
                 return false;
-            Quaternion yaw = Quaternion.Euler(0f, -headCalibrationYaw, 0f);
+            // In first person the stick look turns the whole tracking space around the eye along with the head.
+            Quaternion yaw = Quaternion.Euler(0f, (IsFirstPerson ? lookYaw : 0f) - headCalibrationYaw, 0f);
             localPosition = target.InverseTransformPoint(driverEye.position) + yaw * (position - headCalibrationPosition);
             localRotation = yaw * rotation;
             return true;
@@ -148,13 +151,12 @@ namespace FullThrottleSun.Vehicle
                     || VirtualController.GetButtonDown(headRecenterButton, headRecenterHand))
                     RecenterHead();
                 headWasPresent = present;
-                lookYaw = 0f;
+            }
+
+            UpdateLook(firstPerson, Time.deltaTime);
+            // With Quest controllers the head does the looking up and down; the stick only turns sideways.
+            if (vr && VirtualController.IsTrackedController)
                 lookPitch = 0f;
-            }
-            else
-            {
-                UpdateLook(firstPerson, Time.deltaTime);
-            }
 
             if (firstPerson)
                 UpdateFirstPerson(vr);
@@ -235,7 +237,8 @@ namespace FullThrottleSun.Vehicle
             if (vr)
             {
                 // The eye's own downward tilt suits a flat screen; in VR it would tilt the horizon, so follow the car body.
-                SetHeadAnchor(driverEye.position, target.rotation);
+                // Stick look only turns sideways here for the same reason.
+                SetHeadAnchor(driverEye.position, target.rotation * Quaternion.Euler(0f, lookYaw, 0f));
                 return;
             }
             cam.fieldOfView = firstPersonFov;
@@ -255,7 +258,7 @@ namespace FullThrottleSun.Vehicle
 
             if (vr)
             {
-                SetHeadAnchor(position, Quaternion.Euler(0f, currentYaw, 0f));
+                SetHeadAnchor(position, Quaternion.Euler(0f, currentYaw + lookYaw, 0f));
                 return;
             }
             cam.fieldOfView = thirdPersonFov;
