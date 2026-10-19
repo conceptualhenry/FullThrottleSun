@@ -56,7 +56,7 @@ public class CarMovement : MonoBehaviour
 
     public void OnTurn(InputValue s)
     {
-        print(s.Get<float>());
+        //print(s.Get<float>());
         turnVal = s.Get<float>();
     }
 
@@ -67,7 +67,7 @@ public class CarMovement : MonoBehaviour
             rb.AddForce(transform.forward * carSpeed * carVal);
         }
 
-        print(rb.linearVelocity);
+        //print(rb.linearVelocity);
 
         if (turnVal != 0)
         {
