@@ -7,7 +7,7 @@ public class StopSign : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+       // Debug.Log("start");   
     }
 
     // Update is called once per frame
@@ -18,15 +18,17 @@ public class StopSign : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        //Debug.Log("detect");
         if(other.CompareTag("Player"))
         {
+            Debug.Log("I'm here");
             float speed = other.attachedRigidbody.linearVelocity.magnitude;
             Debug.Log("{speed}");
 
-            if(speed > speedLimit)
-            {
-                Debug.Log("Too fast");
-            }
+            //if(speed > speedLimit)
+            //{
+            //    Debug.Log("Too fast!");
+            //}
         }
     }
 }
