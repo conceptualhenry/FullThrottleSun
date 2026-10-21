@@ -58,7 +58,9 @@ namespace FullThrottleSun.Vehicle
             }
             SetVisible(true);
 
-            if (owner.TryGetPinnedPose(hand, out Vector3 pinnedPosition, out Quaternion pinnedRotation))
+            if (owner.TryGetPinnedPose(hand, out Vector3 pinnedPosition, out Quaternion pinnedRotation)
+                || (LightStalk.Active != null
+                    && LightStalk.Active.TryGetPinnedPose(hand, out pinnedPosition, out pinnedRotation)))
             {
                 transform.SetPositionAndRotation(pinnedPosition, pinnedRotation);
                 wasPinned = true;

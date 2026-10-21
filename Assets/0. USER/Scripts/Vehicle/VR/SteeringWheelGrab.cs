@@ -49,6 +49,47 @@ namespace FullThrottleSun.Vehicle
         [SerializeField] bool leftHolding;
         [SerializeField] bool rightHolding;
 
+        public bool LeftHolding => leftHolding;
+        public bool RightHolding => rightHolding;
+
+        LightStalk lightStalk;
+
+        public float DistanceToWheel(Vector3 worldPosition)
+        {
+            float best = float.MaxValue;
+            if (wheelColliders != null)
+            {
+                foreach (var c in wheelColliders)
+                {
+                    if (c == null || !c.enabled)
+                        continue;
+                    float d = (c.ClosestPoint(worldPosition) - worldPosition).sqrMagnitude;
+                    if (d < best)
+                        best = d;
+                }
+            }
+            if (best < float.MaxValue)
+                return Mathf.Sqrt(best);
+            if (wheel != null)
+                return Vector3.Distance(worldPosition, wheel.position);
+            return float.MaxValue;
+        }
+
+        public bool TouchesWheelWorld(Vector3 worldPosition, Quaternion worldRotation, SphereCollider handCollider)
+        {
+            if (handCollider == null || wheelColliders == null)
+                return false;
+            foreach (var c in wheelColliders)
+            {
+                if (c == null || !c.enabled || !c.gameObject.activeInHierarchy)
+                    continue;
+                if (Physics.ComputePenetration(handCollider, worldPosition, worldRotation,
+                        c, c.transform.position, c.transform.rotation, out _, out _))
+                    return true;
+            }
+            return false;
+        }
+
         class Hand
         {
             public VRHand view;
@@ -87,6 +128,7 @@ namespace FullThrottleSun.Vehicle
 
             if (viewCamera == null)
                 viewCamera = FindAnyObjectByType<CarFollowCamera>();
+            lightStalk = GetComponentInChildren<LightStalk>(true) ?? FindAnyObjectByType<LightStalk>();
             var mesh = wheel.GetComponent<MeshFilter>();
             if (mesh != null && mesh.sharedMesh != null)
                 rimCenter = new Vector3(0f, 0f, mesh.sharedMesh.bounds.center.z);
@@ -188,6 +230,13 @@ namespace FullThrottleSun.Vehicle
                 h.previousRotation = h.rotation;
             }
 
+            // Stalk wins while that hand is on Lever2.
+            if (lightStalk != null && lightStalk.IsHolding(hand))
+            {
+                h.holding = false;
+                return;
+            }
+
             if (h.holding)
             {
                 if (!h.tracked || !VirtualController.GetButton(ControllerButton.Grip, hand))
@@ -196,9 +245,23 @@ namespace FullThrottleSun.Vehicle
             else if (h.tracked && VirtualController.GetButtonDown(ControllerButton.Grip, hand))
             {
                 if (!firstPerson)
+                {
+                    // Third person: still prefer stalk if it's clearly closer.
+                    Vector3 world = transform.TransformPoint(h.position);
+                    if (lightStalk != null && lightStalk.Touches(world)
+                        && lightStalk.DistanceTo(world) < DistanceToWheel(world) - 0.01f)
+                        return;
                     GrabAtDefault(h, hand);
+                }
                 else if (TouchesWheel(h))
+                {
+                    Vector3 world = transform.TransformPoint(h.position);
+                    Quaternion worldRot = transform.rotation * h.rotation;
+                    bool stalkTouch = lightStalk != null && lightStalk.Touches(world, worldRot, h.view != null ? h.view.GrabCollider : null);
+                    if (stalkTouch && lightStalk.DistanceTo(world) < DistanceToWheel(world) - 0.01f)
+                        return; // LightStalk will claim this grip.
                     Grab(h);
+                }
             }
         }
 

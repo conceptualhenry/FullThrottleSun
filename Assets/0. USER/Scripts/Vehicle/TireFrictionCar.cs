@@ -8,9 +8,9 @@ namespace FullThrottleSun.Vehicle
     /// longitudinal slip ratio and lateral slip angle, limited by a friction circle (μ × load × surface grip).
     /// A wheel entry is one spinning body: give it several contact offsets when one mesh is a solid axle.
     ///
-    /// Input through VirtualController. PlayStation pad: R2 throttle, L2 brake / reverse, left stick steer, Cross handbrake.
-    /// Gyro steering: hold the DualSense still and press Options to bind, again to recenter.
-    /// Quest controllers: same layout (A handbrake); the cockpit wheel is grabbed by hand through SteeringWheelGrab.
+    /// Input through VirtualController. PlayStation pad: R2 throttle, L2 brake / reverse, Cross handbrake.
+    /// Steering: DualSense gyro (Options to bind) and/or the cockpit wheel via SteeringWheelGrab (Quest).
+    /// Left stick is not used for steering — in third person it drives the light stalk instead.
     /// The steering wheel always shows the input (full lock = steeringWheelLock); speed only shrinks how far the front
     /// wheels follow it, like a variable steering ratio.
     /// </summary>
@@ -109,6 +109,14 @@ namespace FullThrottleSun.Vehicle
         [Min(1f)] [SerializeField] float highSpeedSteerSpeed = 40f;
         [Tooltip("Speed (km/h) where steering has fully shrunk to the high speed values. Blends linearly below it.")]
         [Min(1f)] [SerializeField] float highSpeed = 100f;
+        [Tooltip("Below this front-wheel slip angle (degrees), returning the wheel to centre is still at full steerSpeed.")]
+        [Min(0f)] [SerializeField] float returnSlipSoft = 8f;
+        [Tooltip("At and above this slip angle, returning the wheel uses minReturnSteerSpeed. Blends between soft and hard.")]
+        [Min(0f)] [SerializeField] float returnSlipHard = 25f;
+        [Tooltip("Degrees per second the front wheels may return toward the stick when the car is fully sliding.")]
+        [Min(0f)] [SerializeField] float minReturnSteerSpeed = 12f;
+        [Tooltip("Yaw rate (rad/s) × this counts as slip for the return damper, so a handbrake spin also slows the return.")]
+        [Min(0f)] [SerializeField] float yawReturnScale = 20f;
         [SerializeField] bool useGyroSteering = true;
         [Tooltip("Upright: held like a steering wheel, gravity keeps the centre from drifting. Flat: turned flat like on a table, gyro only, drifts over time.")]
         [SerializeField] GyroGrip gyroGrip = GyroGrip.Upright;
@@ -154,6 +162,26 @@ namespace FullThrottleSun.Vehicle
 
         public Transform SteeringWheel => steeringWheel;
         public float SteeringWheelLock => steeringWheelLock;
+        /// <summary>0..1 foot brake from the left trigger (not reverse).</summary>
+        public float BrakeInput => brakeInput;
+        public bool HandbrakeInput => handbrakeInput;
+        /// <summary>Front wheel steer angle in degrees; right positive.</summary>
+        public float SteerAngle => steerAngle;
+
+        /// <summary>
+        /// Cockpit / virtual steering-wheel angle in degrees (right positive), same value that spins the wheel model.
+        /// First person = grabbed wheel; third person = gyro / input mapped through <see cref="SteeringWheelLock"/>.
+        /// </summary>
+        public float SteeringWheelAngle
+        {
+            get
+            {
+                float turn = wheelHeld
+                    ? wheelInput
+                    : steerLimit > 0f ? Mathf.Clamp(steerAngle / steerLimit, -1f, 1f) : 0f;
+                return turn * steeringWheelLock;
+            }
+        }
 
         /// <summary>
         /// Steering from a hand on the cockpit wheel, −1..1 with right positive. Adds to the stick. While held, the
@@ -192,6 +220,8 @@ namespace FullThrottleSun.Vehicle
         {
             if (rb != null)
                 rb.centerOfMass = centerOfMass;
+            if (returnSlipHard < returnSlipSoft)
+                returnSlipHard = returnSlipSoft;
         }
 
         void Update()
@@ -208,7 +238,15 @@ namespace FullThrottleSun.Vehicle
             float speedBlend = Mathf.Clamp01(Mathf.Abs(speedKmh) / highSpeed);
             steerLimit = Mathf.Lerp(maxSteerAngle, highSpeedSteerAngle, speedBlend);
             float steerRate = Mathf.Lerp(steerSpeed, highSpeedSteerSpeed, speedBlend);
-            steerAngle = Mathf.MoveTowards(steerAngle, steerInput * steerLimit, steerRate * dt);
+            float targetSteer = steerInput * steerLimit;
+            // Opening the wheel stays sharp; closing it slows down when the tyres (or the car) are sliding.
+            if (IsClosingSteer(steerAngle, targetSteer))
+            {
+                float span = Mathf.Max(0.01f, returnSlipHard - returnSlipSoft);
+                float slide = Mathf.Clamp01((ReturnSlip() - returnSlipSoft) / span);
+                steerRate = Mathf.Lerp(steerRate, minReturnSteerSpeed, slide);
+            }
+            steerAngle = Mathf.MoveTowards(steerAngle, targetSteer, steerRate * dt);
 
             float drive = throttleInput;
             float brake = 0f;
@@ -439,13 +477,39 @@ namespace FullThrottleSun.Vehicle
             return best < float.MaxValue;
         }
 
+        /// <summary>True when the target is smaller in magnitude than the current angle, or has crossed through zero.</summary>
+        static bool IsClosingSteer(float current, float target)
+        {
+            if (current * target < 0f)
+                return true;
+            return Mathf.Abs(target) < Mathf.Abs(current) - 0.01f;
+        }
+
+        /// <summary>Front-wheel slip angle, or yaw-derived slip if the car is spinning harder than the fronts are sliding.</summary>
+        float ReturnSlip()
+        {
+            float front = 0f;
+            int count = 0;
+            foreach (var wheel in wheels)
+            {
+                if (!wheel.steer || !wheel.grounded)
+                    continue;
+                front += Mathf.Abs(wheel.slipAngle);
+                count++;
+            }
+            if (count > 0)
+                front /= count;
+            float yaw = Mathf.Abs(rb.angularVelocity.y) * yawReturnScale;
+            return Mathf.Max(front, yaw);
+        }
+
         void ReadInput()
         {
             throttleInput = VirtualController.GetTrigger(ControllerHand.Right);
             brakeInput = VirtualController.GetTrigger(ControllerHand.Left);
-            steerInput = VirtualController.GetThumbstick(ControllerHand.Left).x;
             handbrakeInput = VirtualController.GetButton(ControllerButton.Primary, ControllerHand.Right);
 
+            steerInput = 0f;
             if (useGyroSteering && VirtualController.ActiveKind == ControllerKind.PlayStation)
                 ReadGyroSteering();
 
