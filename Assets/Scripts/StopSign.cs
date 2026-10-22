@@ -23,12 +23,26 @@ public class StopSign : MonoBehaviour
         {
             Debug.Log("I'm here");
             float speed = other.attachedRigidbody.linearVelocity.magnitude;
-            Debug.Log("{speed}");
+            Debug.Log($"{speed}");
 
-            //if(speed > speedLimit)
-            //{
-            //    Debug.Log("Too fast!");
-            //}
+            if(speed > speedLimit)
+            {
+               Debug.Log("Too fast!");
+            }
+            else
+            {
+                Debug.Log("You're good!");
+                GetComponent<Collider>().enabled = false;
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if(other.CompareTag("Player"))
+        { 
+            GetComponent<Collider>().enabled = true;
+            Debug.Log("Left the event");
         }
     }
 }
