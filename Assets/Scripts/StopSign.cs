@@ -2,7 +2,8 @@ using UnityEngine;
 
 public class StopSign : MonoBehaviour
 {
-    private float speedLimit = 0f;
+    private float speedLimit = 1f;
+    public GameObject theLine;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -33,6 +34,7 @@ public class StopSign : MonoBehaviour
             {
                 Debug.Log("You're good!");
                 GetComponent<Collider>().enabled = false;
+                theLine.SetActive(false);
             }
         }
     }
@@ -43,6 +45,7 @@ public class StopSign : MonoBehaviour
         { 
             GetComponent<Collider>().enabled = true;
             Debug.Log("Left the event");
+            theLine.SetActive(true);
         }
     }
 }
