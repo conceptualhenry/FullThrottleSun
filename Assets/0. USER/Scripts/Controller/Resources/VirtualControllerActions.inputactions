@@ -1,0 +1,65 @@
+{
+    "version": 1,
+    "name": "VirtualControllerActions",
+    "maps": [
+        {
+            "name": "LeftHand",
+            "id": "b327bd55-21ca-4cc5-a2ec-64f9de8e1e8e",
+            "actions": [
+                { "name": "Trigger", "type": "Value", "id": "308edf25-d168-4552-833d-3dfd9dce3a2c", "expectedControlType": "Axis", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "Grip", "type": "Button", "id": "deade299-2633-43e6-b056-f51f3aa86c72", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "Thumbstick", "type": "Value", "id": "e4944d5c-da9f-44e9-a522-2ece1ba41f96", "expectedControlType": "Vector2", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "ThumbstickClick", "type": "Button", "id": "1ff30925-2878-4f9b-9d66-c4bbab18da6c", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "Primary", "type": "Button", "id": "21b23ac0-939a-4490-823f-7492577dbf45", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "Secondary", "type": "Button", "id": "a2240d36-f61d-4088-8dfb-ae2a929e3434", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "Menu", "type": "Button", "id": "23f1092d-738e-4c9a-9176-ada9e1500950", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "DpadUp", "type": "Button", "id": "f06e9a74-d70e-422f-a756-6b38b20e225b", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "DpadDown", "type": "Button", "id": "2dd2dd78-6dd3-47f3-86f7-29682326c488", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "DpadLeft", "type": "Button", "id": "c0043e2c-fd7c-4b89-bfda-da71507d7fa1", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "DpadRight", "type": "Button", "id": "af0de128-d82b-454d-a3fc-abbecaaa6dfc", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false }
+            ],
+            "bindings": [
+                { "name": "", "id": "84ae303b-1abb-4ab2-a878-4df176703db9", "path": "<Gamepad>/leftTrigger", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Trigger", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "63c9a329-13b8-4f7d-a648-9b9bbdb2508b", "path": "<Gamepad>/leftShoulder", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Grip", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "748cd09c-1a8f-48df-bfbc-84119d158ec6", "path": "<Gamepad>/leftStick", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Thumbstick", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "efe17ba8-6a91-4210-a8fa-7b8e8b6a8996", "path": "<Gamepad>/leftStickPress", "interactions": "", "processors": "", "groups": "Gamepad", "action": "ThumbstickClick", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "57305cd6-c018-46e7-ada5-670ddf3d03f1", "path": "<Gamepad>/buttonWest", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Primary", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "c5d64ef7-b81c-48af-a2d2-e847ee141ab3", "path": "<Gamepad>/buttonNorth", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Secondary", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "0663fe6e-ca19-4e18-95ce-4569f0abe82d", "path": "<Gamepad>/start", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Menu", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "c5de817a-6eeb-4a23-8f1b-c9b28507c5ea", "path": "<Gamepad>/dpad/up", "interactions": "", "processors": "", "groups": "Gamepad", "action": "DpadUp", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "2ff79379-190a-44a1-adb9-458e0ae2a2fc", "path": "<Gamepad>/dpad/down", "interactions": "", "processors": "", "groups": "Gamepad", "action": "DpadDown", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7b0f91d1-a742-4b17-80f2-37e52d10bf2b", "path": "<Gamepad>/dpad/left", "interactions": "", "processors": "", "groups": "Gamepad", "action": "DpadLeft", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "2eb68d84-8158-4a4d-a704-d748437c449d", "path": "<Gamepad>/dpad/right", "interactions": "", "processors": "", "groups": "Gamepad", "action": "DpadRight", "isComposite": false, "isPartOfComposite": false }
+            ]
+        },
+        {
+            "name": "RightHand",
+            "id": "b4f569eb-d4cc-402d-82cc-9afcd44ad17e",
+            "actions": [
+                { "name": "Trigger", "type": "Value", "id": "74d75edd-3936-49ca-94d3-05798129419a", "expectedControlType": "Axis", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "Grip", "type": "Button", "id": "c0c6afd9-54b6-4ecd-ba7d-b72b34544047", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "Thumbstick", "type": "Value", "id": "3b670807-001b-45a6-bf7e-310929d9c29d", "expectedControlType": "Vector2", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "ThumbstickClick", "type": "Button", "id": "62e0e831-b2cf-42e0-9ee6-d12036be140b", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "Primary", "type": "Button", "id": "be75edca-0a2f-4532-a6cd-83c5509689f0", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false },
+                { "name": "Secondary", "type": "Button", "id": "a406ae3d-3621-4eea-a95b-dcee4ca74e46", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": false }
+            ],
+            "bindings": [
+                { "name": "", "id": "4bd048d3-c624-47f2-a24f-a6b2afbaedd6", "path": "<Gamepad>/rightTrigger", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Trigger", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "74981844-60f2-42c9-82c6-db65b87e079f", "path": "<Gamepad>/rightShoulder", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Grip", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "d27d2d88-429c-4dc0-8c59-ef21fcd846d7", "path": "<Gamepad>/rightStick", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Thumbstick", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "876c274b-1a9e-4b54-a2a3-8ac6045e5011", "path": "<Gamepad>/rightStickPress", "interactions": "", "processors": "", "groups": "Gamepad", "action": "ThumbstickClick", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "aec0489c-86b4-4681-9f5b-d7e2ad158484", "path": "<Gamepad>/buttonSouth", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Primary", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "cd20ca43-be16-4c99-8ccf-fdfbcd095cbb", "path": "<Gamepad>/buttonEast", "interactions": "", "processors": "", "groups": "Gamepad", "action": "Secondary", "isComposite": false, "isPartOfComposite": false }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "Gamepad",
+            "bindingGroup": "Gamepad",
+            "devices": [
+                { "devicePath": "<Gamepad>", "isOptional": false, "isOR": false }
+            ]
+        }
+    ]
+}
