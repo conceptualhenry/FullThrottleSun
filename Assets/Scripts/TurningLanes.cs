@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
+using UnityEngine.SceneManagement;
 
 public class TurningLanes : MonoBehaviour
 {
@@ -7,12 +9,19 @@ public class TurningLanes : MonoBehaviour
     private float yRot;
     public Animator anim;
 
+    private bool rightBlinkerOn = false;
+    private bool leftBlinkerOn = false;
+
+    public TextMeshProUGUI reasonText;
+    public Canvas lostScreen;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         //rotation = transform.rotation;
         yRot = transform.eulerAngles.y;
         anim = GetComponent<Animator>();
+        lostScreen.enabled = false;
     }
 
     // Update is called once per frame
@@ -31,46 +40,49 @@ public class TurningLanes : MonoBehaviour
         Debug.Log($"Angle {currentY} degrees");
         */
 
-        //right turn
-        if (Keyboard.current.eKey.wasPressedThisFrame)
+        if(Keyboard.current.qKey.wasPressedThisFrame)
         {
-            Debug.Log("E pressed");
-            anim.Play("RightBlinker");
+            leftBlinkerOn = !leftBlinkerOn;
+            rightBlinkerOn = false;
+            anim.Play(leftBlinkerOn ? "LeftBlinker" : "Idle");
+        }
 
-            if(deltaAngle > 0.01f)
+        if(Keyboard.current.eKey.wasPressedThisFrame)
+        {
+            rightBlinkerOn = !rightBlinkerOn;
+            leftBlinkerOn = false;
+            anim.Play(rightBlinkerOn ? "RightBlinker" : "Idle");
+        }
+        if(Keyboard.current.rKey.wasPressedThisFrame)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        if(deltaAngle < -0.01f)
+        {
+            if(leftBlinkerOn)
             {
                 Debug.Log("Good turn");
             }
-
-            if (Keyboard.current.eKey.wasPressedThisFrame)
+            else
             {
-                anim.Play("Idle");
+                lostScreen.enabled = true;
+                reasonText.text = "Failure to indicate turn.";
+                Debug.Log("Illigal turn");
             }
         }
-        else
+        else if (deltaAngle > 0.01f)
         {
-            Debug.Log("Illigal turn");
-        }
-
-        //left turn
-        if (Keyboard.current.qKey.wasPressedThisFrame)
-        {
-            Debug.Log("Q pressed");
-            anim.Play("LeftBlinker");
-
-            if (deltaAngle < -0.01f)
+            if(rightBlinkerOn)
             {
                 Debug.Log("Good turn");
             }
-
-            if (Keyboard.current.qKey.wasPressedThisFrame)
+            else
             {
-                anim.Play("Idle");
+                lostScreen.enabled = true;
+                reasonText.text = "Failure to indicate turn.";
+                Debug.Log("Illegal turn");
             }
-        }
-        else
-        {
-            Debug.Log("Illigal turn");
         }
 
         yRot = angleRotated;
