@@ -51,24 +51,24 @@ namespace FullThrottleSun.Controller
         {
             switch (action)
             {
-                case KeyboardAction.Throttle: return "油门 Throttle";
-                case KeyboardAction.Brake: return "刹车 Brake";
-                case KeyboardAction.SteerLeft: return "左转 Steer Left";
-                case KeyboardAction.SteerRight: return "右转 Steer Right";
-                case KeyboardAction.Handbrake: return "手刹 Handbrake";
-                case KeyboardAction.LookLeft: return "视角左 Look Left";
-                case KeyboardAction.LookRight: return "视角右 Look Right";
-                case KeyboardAction.LookUp: return "视角上 Look Up";
-                case KeyboardAction.LookDown: return "视角下 Look Down";
-                case KeyboardAction.CameraSwitch: return "切换镜头 Camera";
-                case KeyboardAction.LightLeft: return "灯光左 Light Left";
-                case KeyboardAction.LightRight: return "灯光右 Light Right";
-                case KeyboardAction.LightUp: return "灯光上 Light Up";
-                case KeyboardAction.LightDown: return "灯光下 Light Down";
-                case KeyboardAction.Menu: return "菜单 Menu";
-                case KeyboardAction.Secondary: return "次要键 Secondary";
-                case KeyboardAction.GripLeft: return "左握 Grip L";
-                case KeyboardAction.GripRight: return "右握 Grip R";
+                case KeyboardAction.Throttle: return "Throttle";
+                case KeyboardAction.Brake: return "Brake";
+                case KeyboardAction.SteerLeft: return "Steer Left";
+                case KeyboardAction.SteerRight: return "Steer Right";
+                case KeyboardAction.Handbrake: return "Handbrake";
+                case KeyboardAction.LookLeft: return "Look Left";
+                case KeyboardAction.LookRight: return "Look Right";
+                case KeyboardAction.LookUp: return "Look Up";
+                case KeyboardAction.LookDown: return "Look Down";
+                case KeyboardAction.CameraSwitch: return "Camera";
+                case KeyboardAction.LightLeft: return "Light Left";
+                case KeyboardAction.LightRight: return "Light Right";
+                case KeyboardAction.LightUp: return "Light Up";
+                case KeyboardAction.LightDown: return "Light Down";
+                case KeyboardAction.Menu: return "Menu";
+                case KeyboardAction.Secondary: return "Secondary";
+                case KeyboardAction.GripLeft: return "Grip L";
+                case KeyboardAction.GripRight: return "Grip R";
                 default: return action.ToString();
             }
         }

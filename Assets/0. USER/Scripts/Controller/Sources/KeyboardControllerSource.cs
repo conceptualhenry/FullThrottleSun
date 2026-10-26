@@ -18,7 +18,7 @@ namespace FullThrottleSun.Controller
 
         public VirtualControllerState GetState(ControllerHand hand)
         {
-            if (Keyboard.current == null || KeyboardBindings.IsListening)
+            if (Keyboard.current == null || KeyboardBindings.IsListening || SettingsMenu.IsOpen)
                 return default;
 
             // Steer (A/D) is consumed by the vehicle directly; still mark activity so this source can become active.

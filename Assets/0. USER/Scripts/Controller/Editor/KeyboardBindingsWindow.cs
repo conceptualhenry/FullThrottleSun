@@ -46,16 +46,16 @@ namespace FullThrottleSun.Controller
 
         void OnGUI()
         {
-            EditorGUILayout.LabelField("游戏键盘绑定（与 Play 模式共用 PlayerPrefs）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Keyboard bindings (shared PlayerPrefs with Play mode)", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "默认：WASD 驾驶，方向键视角，空格手刹，C 切换镜头，IJKL 灯光，Esc 菜单。\n" +
-                "Play 里按 F1 也可打开同样的重绑界面。",
+                "Defaults: WASD drive, arrows look, Space handbrake, C camera, IJKL lights, Esc menu.\n" +
+                "In Play mode, Esc or F1 opens the Settings remapping menu.",
                 MessageType.Info);
 
             if (listening.HasValue)
             {
-                EditorGUILayout.HelpBox($"按下新按键以绑定：{KeyboardBindings.DisplayName(listening.Value)}（Esc 取消）", MessageType.Warning);
-                if (GUILayout.Button("取消"))
+                EditorGUILayout.HelpBox($"Press a new key for: {KeyboardBindings.DisplayName(listening.Value)} (Esc to cancel)", MessageType.Warning);
+                if (GUILayout.Button("Cancel"))
                 {
                     KeyboardBindings.CancelRebind();
                     listening = null;
@@ -78,7 +78,7 @@ namespace FullThrottleSun.Controller
             EditorGUILayout.EndScrollView();
 
             EditorGUILayout.Space(8f);
-            if (GUILayout.Button("恢复默认 Reset Defaults"))
+            if (GUILayout.Button("Reset Defaults"))
                 KeyboardBindings.ResetToDefaults();
         }
     }
