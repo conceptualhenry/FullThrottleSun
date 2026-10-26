@@ -31,6 +31,8 @@ TagManager:
   - SamplesInfoPanel
   - QDSUIToggleCheckboxRadio
   - QDSUIToggleThumbnail
+  - StopLine
+  - StopSign
   layers:
   - Default
   - TransparentFX

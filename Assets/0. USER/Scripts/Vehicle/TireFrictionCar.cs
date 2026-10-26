@@ -192,7 +192,8 @@ namespace FullThrottleSun.Vehicle
             wheelInput = Mathf.Clamp(input, -1f, 1f);
             wheelHeld = held;
         }
-        readonly RaycastHit[] hitBuffer = new RaycastHit[8];
+        // Large enough for dense road meshes; RaycastNonAlloc does not guarantee nearest-first order.
+        readonly RaycastHit[] hitBuffer = new RaycastHit[64];
         Contact[] contacts = new Contact[4];
 
         void Awake()
@@ -214,6 +215,50 @@ namespace FullThrottleSun.Vehicle
 
             if (steeringWheel != null)
                 steeringWheelRest = steeringWheel.localRotation;
+
+            // Body colliders must not rest on the drive surface — this car is held up by tyre rays only.
+            // If the box catches the road, the mesh sits underground while LateUpdate still snaps wheels to the surface.
+            IgnoreBodyVsDriveSurface();
+        }
+
+        void Start()
+        {
+            // Road may be spawned after Awake in some scenes.
+            IgnoreBodyVsDriveSurface();
+        }
+
+        void IgnoreBodyVsDriveSurface()
+        {
+            var bodyCols = GetComponentsInChildren<Collider>(true);
+            // SplineInstantiate block* clones are Untagged and not returned by FindObjectsByType —
+            // walk loaded scene roots so body box ignores the drive surface (tyre rays still hit it).
+            // Land Plane stays collidable for off-road. ControllerTesting uses name "Ground".
+            for (int s = 0; s < UnityEngine.SceneManagement.SceneManager.sceneCount; s++)
+            {
+                var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(s);
+                if (!scene.isLoaded)
+                    continue;
+                var roots = scene.GetRootGameObjects();
+                for (int r = 0; r < roots.Length; r++)
+                {
+                    var cols = roots[r].GetComponentsInChildren<Collider>(true);
+                    for (int i = 0; i < cols.Length; i++)
+                    {
+                        var ground = cols[i];
+                        if (ground == null || ground.attachedRigidbody == rb)
+                            continue;
+                        string n = ground.gameObject.name;
+                        if (n != "Ground" && !n.StartsWith("block", System.StringComparison.Ordinal))
+                            continue;
+                        for (int b = 0; b < bodyCols.Length; b++)
+                        {
+                            var body = bodyCols[b];
+                            if (body != null && body.enabled && !body.isTrigger)
+                                Physics.IgnoreCollision(body, ground, true);
+                        }
+                    }
+                }
+            }
         }
 
         void OnValidate()
@@ -353,7 +398,10 @@ namespace FullThrottleSun.Vehicle
                 float compressionSpeed = (compression - previous) / dt;
                 wheel.previousCompression[i] = compression;
                 float load = Mathf.Max(0f, springStiffness * compression + damperStiffness * compressionSpeed);
-                rb.AddForceAtPosition(up * load, hit.point);
+                // Push the chassis at the wheel mount so the body is lifted with the suspension,
+                // not only “supported” at the ground contact while the body sinks past the wheels.
+                Vector3 mount = transform.TransformPoint(wheel.restPosition + Vector3.right * wheel.contactOffsets[i]);
+                rb.AddForceAtPosition(up * load, mount);
                 offsetSum += suspensionLength * 0.5f - (hit.distance - wheelRadius);
 
                 Vector3 forward = Vector3.ProjectOnPlane(wheelForward, hit.normal).normalized;
@@ -464,15 +512,20 @@ namespace FullThrottleSun.Vehicle
 
         bool CastToGround(Vector3 origin, Vector3 direction, float length, out RaycastHit nearest)
         {
-            int hitCount = Physics.RaycastNonAlloc(origin, direction, hitBuffer, length, groundLayers, QueryTriggerInteraction.Ignore);
+            // RaycastAll: dense overlapping road boxes can exceed NonAlloc buffers and miss the true nearest hit.
+            var hits = Physics.RaycastAll(origin, direction, length, groundLayers, QueryTriggerInteraction.Ignore);
             nearest = default;
             float best = float.MaxValue;
-            for (int i = 0; i < hitCount; i++)
+            for (int i = 0; i < hits.Length; i++)
             {
-                if (hitBuffer[i].rigidbody == rb || hitBuffer[i].distance >= best)
+                // Skip the car, backfaces, and underside exits (e.g. ray starts inside a block* and
+                // would otherwise lock onto the land Plane under the road).
+                if (hits[i].rigidbody == rb || hits[i].distance >= best)
                     continue;
-                best = hitBuffer[i].distance;
-                nearest = hitBuffer[i];
+                if (Vector3.Dot(hits[i].normal, -direction) < 0.5f)
+                    continue;
+                best = hits[i].distance;
+                nearest = hits[i];
             }
             return best < float.MaxValue;
         }
