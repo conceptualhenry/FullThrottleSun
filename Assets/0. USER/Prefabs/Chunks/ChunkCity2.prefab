@@ -2408,6 +2408,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7891453219194016396}
+  - component: {fileID: 7201009076707822052}
   m_Layer: 0
   m_Name: ChunkCity2
   m_TagString: Untagged
@@ -2447,6 +2448,19 @@ Transform:
   - {fileID: 5501254333085199200}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7201009076707822052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2472398407295686137}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e88dd9b79bb0654f976ae1fd4404b36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Chunk
+  centerPt: {x: 0, y: 0, z: 0}
 --- !u!1 &4392735874102894202
 GameObject:
   m_ObjectHideFlags: 0

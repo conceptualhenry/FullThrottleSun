@@ -40,7 +40,7 @@ public class TurningLanes : MonoBehaviour
 
         Debug.Log($"{totalTurnPoint}");
 
-        if(Keyboard.current.qKey.wasPressedThisFrame)
+        if(Keyboard.current.jKey.wasPressedThisFrame)
         {
             leftBlinkerOn = true;
             rightBlinkerOn = false;
@@ -51,7 +51,7 @@ public class TurningLanes : MonoBehaviour
             totalTurnPoint = 0f;
         }
 
-        if(Keyboard.current.eKey.wasPressedThisFrame)
+        if(Keyboard.current.lKey.wasPressedThisFrame)
         {
             rightBlinkerOn = true;
             leftBlinkerOn = false;
