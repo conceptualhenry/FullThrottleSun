@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class TurningLanes : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class TurningLanes : MonoBehaviour
     private bool leftBlinkerOn = false;
 
     public TextMeshProUGUI reasonText;
-    public Canvas lostScreen;
+    public GameObject lostScreen;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -21,7 +22,7 @@ public class TurningLanes : MonoBehaviour
         //rotation = transform.rotation;
         yRot = transform.eulerAngles.y;
         anim = GetComponent<Animator>();
-        lostScreen.enabled = false;
+        lostScreen.SetActive(false);
     }
 
     // Update is called once per frame
@@ -30,7 +31,7 @@ public class TurningLanes : MonoBehaviour
         //float angleRotated = Quaternion.Angle(rotation, transform.rotation);
         float angleRotated = transform.eulerAngles.y;
         float deltaAngle = Mathf.DeltaAngle(yRot, angleRotated);
-
+        Debug.Log($"{deltaAngle}");
         /*if(angleRotated > 0.01f)
         {
             Debug.Log($"Rotated {angleRotated} degrees");
@@ -58,7 +59,7 @@ public class TurningLanes : MonoBehaviour
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
-        if(deltaAngle < -0.01f)
+        if(deltaAngle < -1.5f)
         {
             if(leftBlinkerOn)
             {
@@ -66,12 +67,12 @@ public class TurningLanes : MonoBehaviour
             }
             else
             {
-                lostScreen.enabled = true;
-                reasonText.text = "Failure to indicate turn.";
+                lostScreen.SetActive(true);
+                reasonText.text = "Failure to indicate left turn.";
                 Debug.Log("Illigal turn");
             }
         }
-        else if (deltaAngle > 0.01f)
+        else if (deltaAngle > 1.5f)
         {
             if(rightBlinkerOn)
             {
@@ -79,8 +80,8 @@ public class TurningLanes : MonoBehaviour
             }
             else
             {
-                lostScreen.enabled = true;
-                reasonText.text = "Failure to indicate turn.";
+                lostScreen.SetActive(true);
+                reasonText.text = "Failure to indicate right turn.";
                 Debug.Log("Illegal turn");
             }
         }
