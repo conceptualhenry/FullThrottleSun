@@ -6,8 +6,11 @@ using UnityEngine.UI;
 
 public class TurningLanes : MonoBehaviour
 {
-    //private Quaternion rotation;
-    private float yRot;
+    private float startingTurnPoint;
+    private bool trackingTurn = false;
+    private float totalTurnPoint = 0f;
+    private bool turnReached = false;
+
     public Animator anim;
 
     private bool rightBlinkerOn = false;
@@ -19,8 +22,6 @@ public class TurningLanes : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        //rotation = transform.rotation;
-        yRot = transform.eulerAngles.y;
         anim = GetComponent<Animator>();
         lostScreen.SetActive(false);
     }
@@ -28,57 +29,67 @@ public class TurningLanes : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //float angleRotated = Quaternion.Angle(rotation, transform.rotation);
         float angleRotated = transform.eulerAngles.y;
-        float deltaAngle = Mathf.DeltaAngle(yRot, angleRotated);
-        Debug.Log($"{deltaAngle}");
-        /*if(angleRotated > 0.01f)
+        totalTurnPoint = Mathf.DeltaAngle(startingTurnPoint, angleRotated);
+
+        if (Mathf.Abs(totalTurnPoint) < 2f)
         {
-            Debug.Log($"Rotated {angleRotated} degrees");
+            startingTurnPoint = angleRotated;
+            totalTurnPoint = 0f;
         }
 
-        float currentY = transform.eulerAngles.y;
-        Debug.Log($"Angle {currentY} degrees");
-        */
+        Debug.Log($"{totalTurnPoint}");
 
         if(Keyboard.current.qKey.wasPressedThisFrame)
         {
-            leftBlinkerOn = !leftBlinkerOn;
+            leftBlinkerOn = true;
             rightBlinkerOn = false;
-            anim.Play(leftBlinkerOn ? "LeftBlinker" : "Idle");
+            turnReached = false;
+            anim.Play("LeftBlinker");
+
+            startingTurnPoint = angleRotated;
+            totalTurnPoint = 0f;
         }
 
         if(Keyboard.current.eKey.wasPressedThisFrame)
         {
-            rightBlinkerOn = !rightBlinkerOn;
+            rightBlinkerOn = true;
             leftBlinkerOn = false;
-            anim.Play(rightBlinkerOn ? "RightBlinker" : "Idle");
+            turnReached = false;
+            anim.Play( "RightBlinker");
+
+            startingTurnPoint = angleRotated;
+            totalTurnPoint = 0f;
         }
+
+
         if(Keyboard.current.rKey.wasPressedThisFrame)
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
-        if(deltaAngle < -1.5f)
+        if(totalTurnPoint < -20f)
         {
             if(leftBlinkerOn)
             {
+                turnReached = true;
                 Debug.Log("Good turn");
             }
-            else
+            else if(!turnReached)
             {
                 lostScreen.SetActive(true);
                 reasonText.text = "Failure to indicate left turn.";
                 Debug.Log("Illigal turn");
             }
         }
-        else if (deltaAngle > 1.5f)
+        else if (totalTurnPoint > 20f)
         {
             if(rightBlinkerOn)
             {
+                turnReached = true;
                 Debug.Log("Good turn");
             }
-            else
+            else if (!turnReached)
             {
                 lostScreen.SetActive(true);
                 reasonText.text = "Failure to indicate right turn.";
@@ -86,7 +97,21 @@ public class TurningLanes : MonoBehaviour
             }
         }
 
-        yRot = angleRotated;
+        if(turnReached && Mathf.Abs(totalTurnPoint) < 5f)
+        {
+            leftBlinkerOn = false;
+            rightBlinkerOn = false;
+            turnReached = false;
+
+            anim.Play("Idle");
+
+            startingTurnPoint = angleRotated;
+        }
+        else if(Mathf.Abs(Mathf.DeltaAngle(startingTurnPoint, angleRotated)) < 1.5f)
+        {
+            startingTurnPoint = angleRotated;
+        }
+        
 
     }
 
