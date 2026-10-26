@@ -1315,6 +1315,8 @@ GameObject:
   - component: {fileID: 558882262}
   - component: {fileID: 558882260}
   - component: {fileID: 558882261}
+  - component: {fileID: 558882267}
+  - component: {fileID: 558882266}
   m_Layer: 0
   m_Name: Car
   m_TagString: Untagged
@@ -1617,6 +1619,43 @@ MonoBehaviour:
   bindHand: 0
   bound: 0
   currentAngle: 0
+--- !u!95 &558882266
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 558882258}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 8a99ee7312e8d8c45aaba18dd88d9e62, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &558882267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 558882258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 165e96ec93b4f2c4bb1cdb95823d5e4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TurningLanes
+  anim: {fileID: 558882266}
+  reasonText: {fileID: 57903992}
+  lostScreen: {fileID: 1655601322}
 --- !u!1 &564068133
 GameObject:
   m_ObjectHideFlags: 0
