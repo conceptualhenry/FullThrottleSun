@@ -37,7 +37,12 @@ namespace FullThrottleSun.Controller
                 return;
             }
 
-            sources = new IControllerSource[] { new GamepadControllerSource(actions), new XRControllerSource() };
+            sources = new IControllerSource[]
+            {
+                new GamepadControllerSource(actions),
+                new KeyboardControllerSource(),
+                new XRControllerSource()
+            };
             VirtualController.SetSources(sources);
         }
 

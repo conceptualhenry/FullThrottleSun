@@ -566,6 +566,9 @@ namespace FullThrottleSun.Vehicle
             if (useGyroSteering && VirtualController.ActiveKind == ControllerKind.PlayStation)
                 ReadGyroSteering();
 
+            // Keyboard A/D (remappable). Kept out of the virtual right stick so it does not fight camera look.
+            steerInput += KeyboardBindings.GetAxis(KeyboardAction.SteerLeft, KeyboardAction.SteerRight);
+
             steerInput = Mathf.Clamp(steerInput + wheelInput, -1f, 1f);
         }
 

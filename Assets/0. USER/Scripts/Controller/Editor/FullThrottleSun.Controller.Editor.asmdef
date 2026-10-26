@@ -2,7 +2,8 @@
     "name": "FullThrottleSun.Controller.Editor",
     "rootNamespace": "FullThrottleSun.Controller",
     "references": [
-        "FullThrottleSun.Controller"
+        "FullThrottleSun.Controller",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

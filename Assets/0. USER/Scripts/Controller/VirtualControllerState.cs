@@ -15,6 +15,7 @@ namespace FullThrottleSun.Controller
         Xbox,
         /// <summary>Any other gamepad.</summary>
         Gamepad,
+        Keyboard,
         MetaQuest,
         /// <summary>Any other OpenXR controller.</summary>
         XR
@@ -61,9 +62,16 @@ namespace FullThrottleSun.Controller
         public Vector3 position;
         public Quaternion rotation;
 
+        /// <summary>
+        /// Extra activity flag for devices whose inputs are not fully represented in this struct
+        /// (e.g. keyboard steer A/D). Pose tracking alone must not set this.
+        /// </summary>
+        public bool activity;
+
         /// <summary>True when the player is actively using this controller (pose changes don't count).</summary>
         public bool HasInput =>
-            trigger > 0.2f || grip > PressThreshold || thumbstick.sqrMagnitude > 0.09f
+            activity
+            || trigger > 0.2f || grip > PressThreshold || thumbstick.sqrMagnitude > 0.09f
             || primary || secondary || thumbstickClick || menu || dpadUp || dpadDown || dpadLeft || dpadRight;
 
         public bool GetButton(ControllerButton button)
