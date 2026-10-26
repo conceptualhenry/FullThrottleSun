@@ -77,9 +77,10 @@ Shader "FullThrottleSun/ConvexMirror"
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-                // Mirror reflection: flip horizontal, barrel-sample wide FOV capture.
+                // Mirror reflection: flip X for left-right, flip Y (RT / atlas often upside-down).
                 float2 uv = input.uv;
                 uv.x = 1.0 - uv.x;
+                uv.y = 1.0 - uv.y;
 
                 float2 c = uv * 2.0 - 1.0;
                 float r2 = dot(c, c);
