@@ -229,10 +229,57 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d9e4a5ef9b28d294f865fd1a55a249c3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7505253317260965901}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d9e4a5ef9b28d294f865fd1a55a249c3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3945343651272652379}
   m_SourcePrefab: {fileID: 100100000, guid: d9e4a5ef9b28d294f865fd1a55a249c3, type: 3}
 --- !u!4 &275304569455825181 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d9e4a5ef9b28d294f865fd1a55a249c3, type: 3}
   m_PrefabInstance: {fileID: 313190876652877558}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &619742617391106983 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: d9e4a5ef9b28d294f865fd1a55a249c3, type: 3}
+  m_PrefabInstance: {fileID: 313190876652877558}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7505253317260965901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 619742617391106983}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14535bed4cd584a45b243c83d2f035c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StopSign
+  theLine: {fileID: 5946171331221126628}
+  reasonText: {fileID: 0}
+  lostScreen: {fileID: 0}
+--- !u!65 &3945343651272652379
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 619742617391106983}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.06981994, y: 1.722521, z: 2.41876}
+  m_Center: {x: -0.00000023841856, y: 0.27542752, z: 0.9650787}

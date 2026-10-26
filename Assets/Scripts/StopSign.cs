@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 public class StopSign : MonoBehaviour
 {
@@ -9,12 +10,12 @@ public class StopSign : MonoBehaviour
     public GameObject theLine;
 
     public TextMeshProUGUI reasonText;
-    public Canvas lostScreen;
+    public GameObject lostScreen;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-       // Debug.Log("start");   
+        // Debug.Log("start");
     }
 
     // Update is called once per frame
@@ -37,6 +38,7 @@ public class StopSign : MonoBehaviour
 
             if(speed > speedLimit)
             {
+                lostScreen.SetActive(true);
                 reasonText.text = "Failure to stop.";
                 Debug.Log("Too fast!");
             }
