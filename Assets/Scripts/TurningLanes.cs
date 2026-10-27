@@ -38,7 +38,7 @@ public class TurningLanes : MonoBehaviour
             totalTurnPoint = 0f;
         }
 
-        Debug.Log($"{totalTurnPoint}");
+       // Debug.Log($"{totalTurnPoint}");
 
         if(Keyboard.current.jKey.wasPressedThisFrame)
         {
