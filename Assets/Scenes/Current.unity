@@ -5043,7 +5043,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FullThrottleSun.Vehicle.CarFollowCamera
   target: {fileID: 241868714}
-  view: 0
+  view: 1
   switchButton: 2
   switchHand: 1
   lookHand: 1
@@ -5054,7 +5054,7 @@ MonoBehaviour:
   heightDamping: 6
   orbitPitchRange: {x: -15, y: 45}
   thirdPersonFov: 70
-  driverEye: {fileID: 0}
+  driverEye: {fileID: 1740485404}
   headYawLimit: 120
   headPitchRange: {x: -40, y: 50}
   firstPersonFov: 80
