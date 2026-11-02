@@ -99,6 +99,8 @@ namespace FullThrottleSun.Vehicle
                 return;
             if (LightStalk.Active != null && LightStalk.Active.IsHolding(hand))
                 return;
+            if (WiperStalk.Active != null && WiperStalk.Active.IsHolding(hand))
+                return;
 
             if (!VrHandClaim.TryClaim(hand, this))
                 return;

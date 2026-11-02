@@ -5,6 +5,8 @@ Shader "FullThrottleSun/ConvexMirror"
         [MainTexture] _BaseMap("Reflection", 2D) = "black" {}
         [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 1)
         _Convex("Convex Strength", Range(0, 1.5)) = 0.55
+        [Toggle] _FlipX("Flip Horizontal", Float) = 1
+        [Toggle] _FlipY("Flip Vertical", Float) = 0
     }
 
     SubShader
@@ -43,6 +45,8 @@ Shader "FullThrottleSun/ConvexMirror"
                 float4 _BaseMap_ST;
                 half4 _BaseColor;
                 half _Convex;
+                half _FlipX;
+                half _FlipY;
             CBUFFER_END
 
             struct Attributes
@@ -77,10 +81,12 @@ Shader "FullThrottleSun/ConvexMirror"
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-                // Mirror reflection: flip X for left-right, flip Y (RT / atlas often upside-down).
+                // Optional flips: X = left-right mirror; Y = sky/ground (mesh UV / RT orientation).
                 float2 uv = input.uv;
-                uv.x = 1.0 - uv.x;
-                uv.y = 1.0 - uv.y;
+                if (_FlipX > 0.5)
+                    uv.x = 1.0 - uv.x;
+                if (_FlipY > 0.5)
+                    uv.y = 1.0 - uv.y;
 
                 float2 c = uv * 2.0 - 1.0;
                 float r2 = dot(c, c);

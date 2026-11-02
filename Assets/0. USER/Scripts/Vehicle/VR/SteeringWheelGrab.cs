@@ -10,7 +10,8 @@ namespace FullThrottleSun.Vehicle
     /// them. With no hand on it the wheel eases back to centre. In third person the hands are hidden and pressing the
     /// grip takes the wheel straight away, wherever the hand is, holding it at a default spot on the rim.
     /// Switching views keeps holding until the grip is let go. Needs the headset on.
-    /// Spawns the hands, and a ring of trigger colliders around the rim when none are assigned.
+    /// Grab volume: assign colliders, or leave empty to build a rim ring of CapsuleColliders
+    /// (sphere+cylinder hybrids) under <c>Grab Zone</c> — leaves the hub open for the horn.
     /// </summary>
     [DefaultExecutionOrder(-50)]
     [RequireComponent(typeof(TireFrictionCar))]
@@ -19,13 +20,13 @@ namespace FullThrottleSun.Vehicle
         [SerializeField] CarFollowCamera viewCamera;
 
         [Header("Grab zone")]
-        [Tooltip("Colliders a hand must touch to grab. Empty = a ring of trigger capsules generated around the rim.")]
+        [Tooltip("Colliders a hand must touch to grab. Empty = rim ring of CapsuleColliders (sphere+cylinder).")]
         [SerializeField] Collider[] wheelColliders;
-        [Tooltip("Generated ring: rim radius (m), measured to the middle of the rim.")]
-        [Min(0.01f)] [SerializeField] float rimRadius = 0.18f;
-        [Tooltip("Generated ring: tube radius (m). Larger = easier to grab.")]
-        [Min(0.005f)] [SerializeField] float rimThickness = 0.035f;
-        [Range(6, 32)] [SerializeField] int rimSegments = 12;
+        [Tooltip("Rim ring radius (m), to the capsule centres. Auto-filled from mesh when possible.")]
+        [Min(0.01f)] [SerializeField] float rimRadius = 0.2f;
+        [Tooltip("Capsule tube radius (m). Larger = easier to grab.")]
+        [Min(0.005f)] [SerializeField] float rimThickness = 0.07f;
+        [Range(6, 32)] [SerializeField] int rimSegments = 16;
 
         [Header("Steering")]
         [Tooltip("Degrees per second the wheel turns back to centre with no hand on it.")]
@@ -41,7 +42,7 @@ namespace FullThrottleSun.Vehicle
         [SerializeField] GameObject leftHandModel;
         [SerializeField] GameObject rightHandModel;
         [Tooltip("Radius of each hand's grab collider (m).")]
-        [Min(0.01f)] [SerializeField] float handRadius = 0.05f;
+        [Min(0.01f)] [SerializeField] float handRadius = 0.065f;
 
         [Header("Debug (read only)")]
         [Tooltip("Steering wheel angle in degrees, right positive.")]
@@ -53,6 +54,7 @@ namespace FullThrottleSun.Vehicle
         public bool RightHolding => rightHolding;
 
         LightStalk lightStalk;
+        WiperStalk wiperStalk;
 
         public float DistanceToWheel(Vector3 worldPosition)
         {
@@ -129,11 +131,18 @@ namespace FullThrottleSun.Vehicle
             if (viewCamera == null)
                 viewCamera = FindAnyObjectByType<CarFollowCamera>();
             lightStalk = GetComponentInChildren<LightStalk>(true) ?? FindAnyObjectByType<LightStalk>();
+            wiperStalk = GetComponentInChildren<WiperStalk>(true) ?? FindAnyObjectByType<WiperStalk>();
             var mesh = wheel.GetComponent<MeshFilter>();
             if (mesh != null && mesh.sharedMesh != null)
-                rimCenter = new Vector3(0f, 0f, mesh.sharedMesh.bounds.center.z);
+            {
+                Bounds b = mesh.sharedMesh.bounds;
+                rimCenter = new Vector3(0f, 0f, b.center.z);
+                float outer = 0.5f * Mathf.Max(b.size.x, b.size.y) * Mathf.Max(wheel.lossyScale.x, wheel.lossyScale.y);
+                if (outer > 0.05f)
+                    rimRadius = Mathf.Max(0.08f, outer * 0.78f);
+            }
             if (wheelColliders == null || wheelColliders.Length == 0)
-                BuildRimColliders();
+                CollectOrBuildRimColliders();
 
             for (int i = 0; i < hands.Length; i++)
             {
@@ -262,8 +271,7 @@ namespace FullThrottleSun.Vehicle
                 {
                     // Third person: still prefer stalk if it's clearly closer.
                     Vector3 world = transform.TransformPoint(h.position);
-                    if (lightStalk != null && lightStalk.Touches(world)
-                        && lightStalk.DistanceTo(world) < DistanceToWheel(world) - 0.01f)
+                    if (PreferStalkOverWheel(world, null))
                         return;
                     GrabAtDefault(h, hand);
                 }
@@ -271,12 +279,29 @@ namespace FullThrottleSun.Vehicle
                 {
                     Vector3 world = transform.TransformPoint(h.position);
                     Quaternion worldRot = transform.rotation * h.rotation;
-                    bool stalkTouch = lightStalk != null && lightStalk.Touches(world, worldRot, h.view != null ? h.view.GrabCollider : null);
-                    if (stalkTouch && lightStalk.DistanceTo(world) < DistanceToWheel(world) - 0.01f)
-                        return; // LightStalk will claim this grip.
+                    var handCol = h.view != null ? h.view.GrabCollider : null;
+                    // Hub horn: leave the hand free when the pad is closer than the rim.
+                    if (handCol != null
+                        && SteeringHorn.OverlapsPad(handCol, world, worldRot)
+                        && SteeringHorn.DistanceToNearestPad(world) < DistanceToWheel(world) + 0.01f)
+                        return;
+                    if (PreferStalkOverWheel(world, handCol, worldRot))
+                        return;
                     Grab(h, hand);
                 }
             }
+        }
+
+        bool PreferStalkOverWheel(Vector3 world, SphereCollider handCol, Quaternion worldRot = default)
+        {
+            float wheelDist = DistanceToWheel(world);
+            if (lightStalk != null && lightStalk.Touches(world, worldRot, handCol)
+                && lightStalk.DistanceTo(world) < wheelDist - 0.01f)
+                return true;
+            if (wiperStalk != null && wiperStalk.Touches(world, worldRot, handCol)
+                && wiperStalk.DistanceTo(world) < wheelDist - 0.01f)
+                return true;
+            return false;
         }
 
         bool TouchesWheel(Hand h)
@@ -349,24 +374,54 @@ namespace FullThrottleSun.Vehicle
             return Mathf.DeltaAngle(0f, angle * Mathf.Rad2Deg);
         }
 
+        /// <summary>
+        /// Prefer a scene-authored <c>Grab Zone</c> under the wheel. Only build at runtime if missing.
+        /// </summary>
+        void CollectOrBuildRimColliders()
+        {
+            Transform existing = wheel.Find("Grab Zone");
+            if (existing != null)
+            {
+                var found = existing.GetComponentsInChildren<Collider>(true);
+                if (found != null && found.Length > 0)
+                {
+                    wheelColliders = found;
+                    return;
+                }
+            }
+
+            BuildRimColliders();
+        }
+
+        /// <summary>
+        /// Rim ring of CapsuleColliders (sphere ends + cylinder body). Hub stays open for the horn.
+        /// </summary>
         void BuildRimColliders()
         {
+            // Only under the steering wheel — never touch the horn Cylinder / pad.
+            Transform legacyMesh = wheel.Find("GrabVolume");
+            if (legacyMesh != null)
+                Destroy(legacyMesh.gameObject);
+
+            Transform existing = wheel.Find("Grab Zone");
+            if (existing != null)
+                Destroy(existing.gameObject);
+
             var root = new GameObject("Grab Zone").transform;
             root.SetParent(wheel, false);
             root.localPosition = rimCenter;
+            root.SetAsFirstSibling();
 
-            int ignoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
-            root.gameObject.layer = ignoreRaycast;
-            float chord = 2f * rimRadius * Mathf.Sin(Mathf.PI / rimSegments);
+            float hornClear = 0.09f;
+            float radius = Mathf.Max(hornClear + rimThickness, rimRadius);
+            float chord = 2f * radius * Mathf.Sin(Mathf.PI / rimSegments);
             wheelColliders = new Collider[rimSegments];
             for (int i = 0; i < rimSegments; i++)
             {
                 var segment = new GameObject("Rim " + i);
-                segment.layer = ignoreRaycast;
                 segment.transform.SetParent(root, false);
-                // Each capsule lies along its local Y, tangent to the rim.
                 segment.transform.localRotation = Quaternion.Euler(0f, 0f, 360f * i / rimSegments);
-                segment.transform.localPosition = segment.transform.localRotation * Vector3.right * rimRadius;
+                segment.transform.localPosition = segment.transform.localRotation * Vector3.right * radius;
                 var capsule = segment.AddComponent<CapsuleCollider>();
                 capsule.isTrigger = true;
                 capsule.direction = 1;

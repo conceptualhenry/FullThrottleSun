@@ -23,7 +23,7 @@ public class SleepTimer : MonoBehaviour
         }
         StartCoroutine(StartTimerClock());
 
-        if (lostScreen != null)
+        if (lostScreen)
             lostScreen.SetActive(false);
     }
 
@@ -44,9 +44,9 @@ public class SleepTimer : MonoBehaviour
             if (energyTimer <= 0)
             {
                 stopTimer = true;
-                if (lostScreen != null)
+                if (lostScreen)
                     lostScreen.SetActive(true);
-                if (reasonText != null)
+                if (reasonText)
                     reasonText.text = "Falling asleep at the wheel";
                 yield break;
             }

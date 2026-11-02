@@ -1,120 +1,127 @@
+using FullThrottleSun.Vehicle;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using TMPro;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
+/// <summary>
+/// Fail-check for turning without a signal. Blinkers themselves come from
+/// <see cref="CarLights"/> (Lever2 / <see cref="LightStalk"/>). Signal presence is
+/// latched for the current heading swing so CarLights auto-cancel still counts as indicated.
+/// </summary>
+[RequireComponent(typeof(CarLights))]
+[DefaultExecutionOrder(50)]
 public class TurningLanes : MonoBehaviour
 {
-    private float startingTurnPoint;
-    private bool trackingTurn = false;
-    private float totalTurnPoint = 0f;
-    private bool turnReached = false;
-
-    public Animator anim;
-
-    private bool rightBlinkerOn = false;
-    private bool leftBlinkerOn = false;
+    [Tooltip("Body yaw degrees (Unity Y, right +) past which a matching turn signal is required.")]
+    [SerializeField] float failYawDegrees = 20f;
+    [Tooltip("When |yaw| falls below this, the maneuver resets.")]
+    [SerializeField] float resetYawDegrees = 5f;
 
     public TextMeshProUGUI reasonText;
     public GameObject lostScreen;
 
+    CarLights lights;
+    float startingYaw;
+    float yawDelta;
+    bool indicatedLeft;
+    bool indicatedRight;
+    bool turnOk;
+    bool failed;
+
+    void Awake()
+    {
+        lights = GetComponent<CarLights>();
+        startingYaw = transform.eulerAngles.y;
+    }
+
     void Start()
     {
-        anim = GetComponent<Animator>();
-        if (lostScreen != null)
-            lostScreen.SetActive(false);
+        SetLostVisible(false);
     }
 
     void Update()
     {
-        float angleRotated = transform.eulerAngles.y;
-        totalTurnPoint = Mathf.DeltaAngle(startingTurnPoint, angleRotated);
+        float yaw = transform.eulerAngles.y;
+        yawDelta = Mathf.DeltaAngle(startingYaw, yaw);
 
-        if (Mathf.Abs(totalTurnPoint) < 2f)
+        // Drift baseline while nearly straight so small corrections don't accumulate.
+        if (Mathf.Abs(yawDelta) < 2f)
         {
-            startingTurnPoint = angleRotated;
-            totalTurnPoint = 0f;
+            startingYaw = yaw;
+            yawDelta = 0f;
         }
+
+        LatchSignals();
 
         var keyboard = Keyboard.current;
-        if (keyboard == null)
+        if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        if (!HasLostUi)
             return;
 
-        if(keyboard.qKey.wasPressedThisFrame)
-        {
-            leftBlinkerOn = true;
-            rightBlinkerOn = false;
-            turnReached = false;
-            anim.Play("LeftBlinker");
+        float fail = Mathf.Max(1f, failYawDegrees);
+        if (yawDelta < -fail)
+            EvaluateTurn(left: true);
+        else if (yawDelta > fail)
+            EvaluateTurn(left: false);
 
-            startingTurnPoint = angleRotated;
-            totalTurnPoint = 0f;
+        if (Mathf.Abs(yawDelta) < Mathf.Max(0.5f, resetYawDegrees))
+            ResetManeuver(yaw);
+    }
+
+    void LatchSignals()
+    {
+        if (lights == null)
+            return;
+        if (lights.Turn == CarLights.TurnSignal.Left)
+            indicatedLeft = true;
+        if (lights.Turn == CarLights.TurnSignal.Right)
+            indicatedRight = true;
+    }
+
+    void EvaluateTurn(bool left)
+    {
+        bool indicated = left ? indicatedLeft : indicatedRight;
+        if (indicated)
+        {
+            turnOk = true;
+            return;
         }
 
-        if(keyboard.eKey.wasPressedThisFrame)
-        {
-            rightBlinkerOn = true;
-            leftBlinkerOn = false;
-            turnReached = false;
-            anim.Play( "RightBlinker");
+        if (turnOk || failed)
+            return;
 
-            startingTurnPoint = angleRotated;
-            totalTurnPoint = 0f;
-        }
+        failed = true;
+        ShowLost(left
+            ? "Failure to indicate left turn."
+            : "Failure to indicate right turn.");
+    }
 
+    void ResetManeuver(float yaw)
+    {
+        turnOk = false;
+        failed = false;
+        indicatedLeft = false;
+        indicatedRight = false;
+        startingYaw = yaw;
+        yawDelta = 0f;
+    }
 
-        if(keyboard.rKey.wasPressedThisFrame)
-        {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
+    bool HasLostUi => lostScreen;
 
-        if(totalTurnPoint < -20f)
-        {
-            if(leftBlinkerOn)
-            {
-                turnReached = true;
-            }
-            else if(!turnReached)
-            {
-                ShowLost("Failure to indicate left turn.");
-            }
-        }
-        else if (totalTurnPoint > 20f)
-        {
-            if(rightBlinkerOn)
-            {
-                turnReached = true;
-            }
-            else if (!turnReached)
-            {
-                ShowLost("Failure to indicate right turn.");
-            }
-        }
-
-        if(turnReached && Mathf.Abs(totalTurnPoint) < 5f)
-        {
-            leftBlinkerOn = false;
-            rightBlinkerOn = false;
-            turnReached = false;
-
-            anim.Play("Idle");
-
-            startingTurnPoint = angleRotated;
-        }
-        else if(Mathf.Abs(Mathf.DeltaAngle(startingTurnPoint, angleRotated)) < 1.5f)
-        {
-            startingTurnPoint = angleRotated;
-        }
-        
-
+    void SetLostVisible(bool visible)
+    {
+        if (!HasLostUi)
+            return;
+        lostScreen.SetActive(visible);
     }
 
     void ShowLost(string reason)
     {
-        if (lostScreen != null)
-            lostScreen.SetActive(true);
-        if (reasonText != null)
+        SetLostVisible(true);
+        if (reasonText)
             reasonText.text = reason;
     }
 }

@@ -1249,6 +1249,7 @@ GameObject:
   - component: {fileID: 558882261}
   - component: {fileID: 558882267}
   - component: {fileID: 558882266}
+  - component: {fileID: 558882268}
   m_Layer: 0
   m_Name: Car
   m_TagString: Untagged
@@ -1585,9 +1586,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 165e96ec93b4f2c4bb1cdb95823d5e4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TurningLanes
-  anim: {fileID: 558882266}
+  failYawDegrees: 20
+  resetYawDegrees: 5
   reasonText: {fileID: 57903992}
   lostScreen: {fileID: 1655601322}
+--- !u!114 &558882268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 558882258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 769f34ecc95176d46ace6c7778721753, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FullThrottleSun.Vehicle.WindshieldWipers
+  leftBlade: {fileID: 95144512}
+  rightBlade: {fileID: 169491772}
+  layOnGlassPitch: -40
+  rightLayExtraPitch: -6
+  mirrorRightBlade: 1
+  maxAngle: 75
+  invertSwing: 1
+  rightPhase: 0.1
+  invertRight: 0
+  lowSpeed: 200
+  highSpeed: 420
+  intermittentPause: 2.2
+  mode: 0
+  drawGizmos: 1
 --- !u!1 &564068133
 GameObject:
   m_ObjectHideFlags: 0
@@ -5393,6 +5421,7 @@ GameObject:
   - component: {fileID: 1991532918}
   - component: {fileID: 1991532920}
   - component: {fileID: 1991532919}
+  - component: {fileID: 1991532921}
   m_Layer: 0
   m_Name: Lever1
   m_TagString: Untagged
@@ -5415,6 +5444,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 558882259}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1991532921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1991532917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c4e91a2b8d34f0e9a1c2d3e4f5a6b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FullThrottleSun.Vehicle.WiperStalk
+  wipers: {fileID: 558882268}
+  viewCamera: {fileID: 0}
+  wheelGrab: {fileID: 558882260}
+  carRoot: {fileID: 558882259}
+  touchRadius: 0.080000006
+  thirdPersonGrabDistance: 0.35
+  clickTiltDegrees: 10
+  poseLerp: 12
+  held: 0
+  heldHand: 0
 --- !u!23 &1991532919
 MeshRenderer:
   m_ObjectHideFlags: 0

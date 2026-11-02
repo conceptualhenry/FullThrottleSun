@@ -21,6 +21,10 @@ namespace FullThrottleSun.Vehicle
         [SerializeField] int resolution = 512;
         [Tooltip("Barrel warp on the glass (0 = flat).")]
         [Range(0f, 1.5f)] [SerializeField] float convexStrength = 0.55f;
+        [Tooltip("Left-right mirror flip.")]
+        [SerializeField] bool flipHorizontal = true;
+        [Tooltip("Sky/ground flip. Interior glass often needs this off; side glasses on.")]
+        [SerializeField] bool flipVertical = false;
         [Min(1)] [SerializeField] int frameInterval = 1;
         [Tooltip("If true, auto-created cameras are aimed for a rear view. Ignored when you assign mirrorCam.")]
         [SerializeField] bool autoAimOwnedCamera = true;
@@ -45,6 +49,10 @@ namespace FullThrottleSun.Vehicle
                 kind = Kind.Left;
             else if (kind == Kind.Interior && name.Contains("FR"))
                 kind = Kind.Right;
+
+            // Side mirrors typically need V flip; cabin mirror usually does not.
+            if (kind != Kind.Interior)
+                flipVertical = true;
 
             ComputeAtlasUvRemap();
             EnsureCamera();
@@ -77,8 +85,12 @@ namespace FullThrottleSun.Vehicle
             if (!want)
                 return;
 
-            if (matInstance != null && matInstance.HasProperty("_Convex"))
-                matInstance.SetFloat("_Convex", convexStrength);
+            if (matInstance != null)
+            {
+                if (matInstance.HasProperty("_Convex"))
+                    matInstance.SetFloat("_Convex", convexStrength);
+                ApplyFlip();
+            }
 
             frameCounter++;
             if (frameCounter % frameInterval != 0)
@@ -235,11 +247,22 @@ namespace FullThrottleSun.Vehicle
                 matInstance.SetColor("_Color", Color.white);
             if (matInstance.HasProperty("_Convex"))
                 matInstance.SetFloat("_Convex", convexStrength);
+            ApplyFlip();
 
             AssignTexture(rt);
             ApplyUvRemap();
 
             mirrorRenderer.material = matInstance;
+        }
+
+        void ApplyFlip()
+        {
+            if (matInstance == null)
+                return;
+            if (matInstance.HasProperty("_FlipX"))
+                matInstance.SetFloat("_FlipX", flipHorizontal ? 1f : 0f);
+            if (matInstance.HasProperty("_FlipY"))
+                matInstance.SetFloat("_FlipY", flipVertical ? 1f : 0f);
         }
 
         void AssignTexture(Texture tex)

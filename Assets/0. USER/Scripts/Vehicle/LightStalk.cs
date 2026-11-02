@@ -4,23 +4,22 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Lever2 stalk. Third person: left stick always controls lights (no grab);
-    /// left thumbstick click cycles windshield wipers.
+    /// Lever2 stalk for lights only. Third person: left stick always controls lights (no grab).
     /// First person: grab Lever2, then that hand's stick —
-    /// forward/back = high/low beam (hold to flash-toggle), right/left = turn signals;
-    /// thumbstick click cycles wipers (Off → Int → Low → High → Off).
+    /// forward/back = high/low beam (hold to flash-toggle), right/left = turn signals.
+    /// Wipers are on Lever1 / <see cref="WiperStalk"/>.
     /// </summary>
-    [DefaultExecutionOrder(-40)]
+    [DefaultExecutionOrder(-45)]
     public class LightStalk : MonoBehaviour, IHandPinProvider
     {
         [SerializeField] CarLights lights;
-        [SerializeField] WindshieldWipers wipers;
         [SerializeField] CarFollowCamera viewCamera;
         [SerializeField] SteeringWheelGrab wheelGrab;
+        [SerializeField] WiperStalk wiperStalk;
         [SerializeField] Transform carRoot;
 
         [Header("Grab")]
-        [SerializeField] float touchRadius = 0.08f;
+        [SerializeField] float touchRadius = 0.055f;
         [SerializeField] float thirdPersonGrabDistance = 0.35f;
 
         [Header("Stick")]
@@ -102,9 +101,6 @@ namespace FullThrottleSun.Vehicle
         {
             if (lights == null)
                 lights = GetComponentInParent<CarLights>();
-            if (wipers == null)
-                wipers = GetComponentInParent<WindshieldWipers>()
-                         ?? FindAnyObjectByType<WindshieldWipers>();
             if (carRoot == null)
                 carRoot = GetComponentInParent<TireFrictionCar>()?.transform ?? transform.root;
             if (viewCamera == null)
@@ -112,6 +108,8 @@ namespace FullThrottleSun.Vehicle
             if (wheelGrab == null)
                 wheelGrab = GetComponentInParent<SteeringWheelGrab>()
                             ?? FindAnyObjectByType<SteeringWheelGrab>();
+            if (wiperStalk == null)
+                wiperStalk = FindAnyObjectByType<WiperStalk>();
 
             restLocalRotation = transform.localRotation;
             EnsureCollider();
@@ -132,13 +130,14 @@ namespace FullThrottleSun.Vehicle
             if (mf != null && mf.sharedMesh != null)
             {
                 box.center = mf.sharedMesh.bounds.center;
+                // Tight fit — Lever1/Lever2 share the wheel pivot; fat boxes overlap and steal grabs.
                 Vector3 size = mf.sharedMesh.bounds.size;
-                size = Vector3.Max(size, Vector3.one * 0.02f) * 1.5f;
+                size = Vector3.Max(size, Vector3.one * 0.015f) * 1.1f;
                 box.size = size;
             }
             else
             {
-                box.size = new Vector3(0.12f, 0.04f, 0.06f);
+                box.size = new Vector3(0.1f, 0.035f, 0.05f);
             }
             box.isTrigger = true;
             leverCollider = box;
@@ -178,7 +177,6 @@ namespace FullThrottleSun.Vehicle
                 Vector2 stick = VirtualController.GetThumbstick(ControllerHand.Left);
                 HandleTurn(stick.x);
                 HandleBeam(stick.y);
-                HandleWipers(ControllerHand.Left);
                 turnPose = Mathf.Abs(stick.x) > stickThreshold ? Mathf.Sign(stick.x) : 0f;
                 beamPose = Mathf.Abs(stick.y) > stickThreshold ? Mathf.Sign(stick.y) : 0f;
             }
@@ -193,7 +191,6 @@ namespace FullThrottleSun.Vehicle
                     Vector2 stick = VirtualController.GetThumbstick(heldHand);
                     HandleTurn(stick.x);
                     HandleBeam(stick.y);
-                    HandleWipers(heldHand);
                     turnPose = Mathf.Abs(stick.x) > stickThreshold ? Mathf.Sign(stick.x) : 0f;
                     beamPose = Mathf.Abs(stick.y) > stickThreshold ? Mathf.Sign(stick.y) : 0f;
                 }
@@ -264,6 +261,12 @@ namespace FullThrottleSun.Vehicle
             if (wheelTouch && wheelDist + 0.01f < leverDist)
                 return;
 
+            // Lever1 (wipers) often overlaps — only yield if that stalk is clearly closer.
+            if (wiperStalk != null
+                && wiperStalk.Touches(worldPos, worldRot, handCol)
+                && wiperStalk.DistanceTo(worldPos) + 0.025f < leverDist)
+                return;
+
             if (!VrHandClaim.TryClaim(hand, this))
                 return;
 
@@ -302,14 +305,6 @@ namespace FullThrottleSun.Vehicle
                 lights.PulseTurn(CarLights.TurnSignal.Left);
             stickWasUp = up;
             stickWasDown = down;
-        }
-
-        void HandleWipers(ControllerHand hand)
-        {
-            if (wipers == null)
-                return;
-            if (VirtualController.GetButtonDown(ControllerButton.ThumbstickClick, hand))
-                wipers.CycleMode();
         }
 
         void HandleBeam(float axis)
