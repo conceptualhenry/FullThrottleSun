@@ -3905,9 +3905,25 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 664462895510716888, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Size.x
+      value: 1.2131133
+      objectReference: {fileID: 0}
+    - target: {fileID: 664462895510716888, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.x
+      value: -0.57164705
+      objectReference: {fileID: 0}
     - target: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: m_Name
       value: ChunkCity2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4098885008129982957, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Size.x
+      value: 1.558802
+      objectReference: {fileID: 0}
+    - target: {fileID: 4098885008129982957, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.x
+      value: -0.74449146
       objectReference: {fileID: 0}
     - target: {fileID: 4418210660297417174, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: lostScreen
