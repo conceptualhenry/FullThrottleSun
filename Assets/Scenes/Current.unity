@@ -5042,7 +5042,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c86e8974bb2d8458f6ec79cb9c81d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FullThrottleSun.Vehicle.CarFollowCamera
-  target: {fileID: 0}
+  target: {fileID: 241868714}
   view: 0
   switchButton: 2
   switchHand: 1
