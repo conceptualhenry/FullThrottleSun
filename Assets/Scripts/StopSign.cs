@@ -8,6 +8,7 @@ public class StopSign : MonoBehaviour
 {
     private float speedLimit = 1f;
     public GameObject theLine;
+    private bool carStopped;
 
     public TextMeshProUGUI reasonText;
     public GameObject lostScreen;
@@ -16,6 +17,7 @@ public class StopSign : MonoBehaviour
     void Start()
     {
         // Debug.Log("start");
+        carStopped = false;
     }
 
     // Update is called once per frame
@@ -26,7 +28,22 @@ public class StopSign : MonoBehaviour
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
-
+    private void OnTriggerStay(Collider other)
+    {
+       if(other.CompareTag("Player"))
+        {
+            float speed = other.attachedRigidbody.linearVelocity.sqrMagnitude;
+            if(speed <= speedLimit)
+            {
+                Debug.Log("I'm in");
+                carStopped = true;
+                GetComponent<Collider>().enabled = false;
+                theLine.SetActive(false);
+            }
+        }
+        
+    }
+    /*
     private void OnTriggerEnter(Collider other)
     {
         //Debug.Log("detect");
@@ -50,14 +67,22 @@ public class StopSign : MonoBehaviour
             }
         }
     }
+    */
 
     private void OnTriggerExit(Collider other)
     {
-        if(other.CompareTag("Player"))
+        if(other.CompareTag("Player") && carStopped)
         { 
             GetComponent<Collider>().enabled = true;
             Debug.Log("Left the event");
             theLine.SetActive(true);
+            carStopped = false;
+        }
+        else if(other.CompareTag("Player") && !carStopped)
+        {
+            lostScreen.SetActive(true);
+            reasonText.text = "Failure to stop.";
+            Debug.Log("Too fast!");
         }
     }
 }
