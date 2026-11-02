@@ -17,6 +17,7 @@ namespace FullThrottleSun.Controller
         LightRight,
         LightUp,
         LightDown,
+        Wipers,
         Menu,
         Secondary,
         GripLeft,

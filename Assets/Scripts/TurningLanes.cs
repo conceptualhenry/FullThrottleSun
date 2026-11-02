@@ -19,14 +19,13 @@ public class TurningLanes : MonoBehaviour
     public TextMeshProUGUI reasonText;
     public GameObject lostScreen;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         anim = GetComponent<Animator>();
-        lostScreen.SetActive(false);
+        if (lostScreen != null)
+            lostScreen.SetActive(false);
     }
 
-    // Update is called once per frame
     void Update()
     {
         float angleRotated = transform.eulerAngles.y;
@@ -38,9 +37,11 @@ public class TurningLanes : MonoBehaviour
             totalTurnPoint = 0f;
         }
 
-        Debug.Log($"{totalTurnPoint}");
+        var keyboard = Keyboard.current;
+        if (keyboard == null)
+            return;
 
-        if(Keyboard.current.qKey.wasPressedThisFrame)
+        if(keyboard.qKey.wasPressedThisFrame)
         {
             leftBlinkerOn = true;
             rightBlinkerOn = false;
@@ -51,7 +52,7 @@ public class TurningLanes : MonoBehaviour
             totalTurnPoint = 0f;
         }
 
-        if(Keyboard.current.eKey.wasPressedThisFrame)
+        if(keyboard.eKey.wasPressedThisFrame)
         {
             rightBlinkerOn = true;
             leftBlinkerOn = false;
@@ -63,7 +64,7 @@ public class TurningLanes : MonoBehaviour
         }
 
 
-        if(Keyboard.current.rKey.wasPressedThisFrame)
+        if(keyboard.rKey.wasPressedThisFrame)
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
@@ -73,13 +74,10 @@ public class TurningLanes : MonoBehaviour
             if(leftBlinkerOn)
             {
                 turnReached = true;
-                Debug.Log("Good turn");
             }
             else if(!turnReached)
             {
-                lostScreen.SetActive(true);
-                reasonText.text = "Failure to indicate left turn.";
-                Debug.Log("Illigal turn");
+                ShowLost("Failure to indicate left turn.");
             }
         }
         else if (totalTurnPoint > 20f)
@@ -87,13 +85,10 @@ public class TurningLanes : MonoBehaviour
             if(rightBlinkerOn)
             {
                 turnReached = true;
-                Debug.Log("Good turn");
             }
             else if (!turnReached)
             {
-                lostScreen.SetActive(true);
-                reasonText.text = "Failure to indicate right turn.";
-                Debug.Log("Illegal turn");
+                ShowLost("Failure to indicate right turn.");
             }
         }
 
@@ -115,10 +110,11 @@ public class TurningLanes : MonoBehaviour
 
     }
 
-    /*So press button to indicate
-     * Dashboard materials change color and blink
-     * the game has to know that it is a turn (so keep track of rotations)
-     * A way to point out turning points?
-     * 
-     */
+    void ShowLost(string reason)
+    {
+        if (lostScreen != null)
+            lostScreen.SetActive(true);
+        if (reasonText != null)
+            reasonText.text = reason;
+    }
 }

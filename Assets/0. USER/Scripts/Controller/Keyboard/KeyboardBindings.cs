@@ -41,6 +41,7 @@ namespace FullThrottleSun.Controller
             { KeyboardAction.LightRight, Key.L },
             { KeyboardAction.LightUp, Key.I },
             { KeyboardAction.LightDown, Key.K },
+            { KeyboardAction.Wipers, Key.V },
             { KeyboardAction.Menu, Key.Escape },
             { KeyboardAction.Secondary, Key.LeftShift },
             { KeyboardAction.GripLeft, Key.Q },
@@ -65,6 +66,7 @@ namespace FullThrottleSun.Controller
                 case KeyboardAction.LightRight: return "Light Right";
                 case KeyboardAction.LightUp: return "Light Up";
                 case KeyboardAction.LightDown: return "Light Down";
+                case KeyboardAction.Wipers: return "Wipers";
                 case KeyboardAction.Menu: return "Menu";
                 case KeyboardAction.Secondary: return "Secondary";
                 case KeyboardAction.GripLeft: return "Grip L";

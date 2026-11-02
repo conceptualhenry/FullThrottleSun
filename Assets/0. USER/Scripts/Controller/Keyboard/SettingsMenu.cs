@@ -34,7 +34,8 @@ namespace FullThrottleSun.Controller
                 KeyboardAction.LightLeft,
                 KeyboardAction.LightRight,
                 KeyboardAction.LightUp,
-                KeyboardAction.LightDown
+                KeyboardAction.LightDown,
+                KeyboardAction.Wipers
             }),
             ("System", new[]
             {

@@ -4,14 +4,17 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Light stalk. Third person: left stick always controls lights (no grab).
+    /// Lever2 stalk. Third person: left stick always controls lights (no grab);
+    /// left thumbstick click cycles windshield wipers.
     /// First person: grab Lever2, then that hand's stick —
-    /// forward/back = high/low beam (hold to flash-toggle), right/left = turn signals.
+    /// forward/back = high/low beam (hold to flash-toggle), right/left = turn signals;
+    /// thumbstick click cycles wipers (Off → Int → Low → High → Off).
     /// </summary>
     [DefaultExecutionOrder(-40)]
-    public class LightStalk : MonoBehaviour
+    public class LightStalk : MonoBehaviour, IHandPinProvider
     {
         [SerializeField] CarLights lights;
+        [SerializeField] WindshieldWipers wipers;
         [SerializeField] CarFollowCamera viewCamera;
         [SerializeField] SteeringWheelGrab wheelGrab;
         [SerializeField] Transform carRoot;
@@ -99,6 +102,9 @@ namespace FullThrottleSun.Vehicle
         {
             if (lights == null)
                 lights = GetComponentInParent<CarLights>();
+            if (wipers == null)
+                wipers = GetComponentInParent<WindshieldWipers>()
+                         ?? FindAnyObjectByType<WindshieldWipers>();
             if (carRoot == null)
                 carRoot = GetComponentInParent<TireFrictionCar>()?.transform ?? transform.root;
             if (viewCamera == null)
@@ -109,6 +115,7 @@ namespace FullThrottleSun.Vehicle
 
             restLocalRotation = transform.localRotation;
             EnsureCollider();
+            HandPinHub.Register(this);
         }
 
         void EnsureCollider()
@@ -139,10 +146,14 @@ namespace FullThrottleSun.Vehicle
 
         void OnDisable()
         {
+            if (held)
+                VrHandClaim.Release(heldHand, this);
             held = false;
             IsHeld = false;
             if (Active == this)
                 Active = null;
+            HandPinHub.Unregister(this);
+            VrHandClaim.ReleaseAll(this);
         }
 
         void Update()
@@ -167,6 +178,7 @@ namespace FullThrottleSun.Vehicle
                 Vector2 stick = VirtualController.GetThumbstick(ControllerHand.Left);
                 HandleTurn(stick.x);
                 HandleBeam(stick.y);
+                HandleWipers(ControllerHand.Left);
                 turnPose = Mathf.Abs(stick.x) > stickThreshold ? Mathf.Sign(stick.x) : 0f;
                 beamPose = Mathf.Abs(stick.y) > stickThreshold ? Mathf.Sign(stick.y) : 0f;
             }
@@ -181,6 +193,7 @@ namespace FullThrottleSun.Vehicle
                     Vector2 stick = VirtualController.GetThumbstick(heldHand);
                     HandleTurn(stick.x);
                     HandleBeam(stick.y);
+                    HandleWipers(heldHand);
                     turnPose = Mathf.Abs(stick.x) > stickThreshold ? Mathf.Sign(stick.x) : 0f;
                     beamPose = Mathf.Abs(stick.y) > stickThreshold ? Mathf.Sign(stick.y) : 0f;
                 }
@@ -209,9 +222,12 @@ namespace FullThrottleSun.Vehicle
 
             if (held)
             {
-                if (!VirtualController.GetButton(ControllerButton.Grip, heldHand)
+                if (!VrGrip.IsHeld(heldHand)
                     || !VirtualController.GetState(heldHand).isTracked)
+                {
+                    VrHandClaim.Release(heldHand, this);
                     held = false;
+                }
                 return;
             }
 
@@ -222,7 +238,9 @@ namespace FullThrottleSun.Vehicle
 
         void TryGrab(ControllerHand hand)
         {
-            if (!VirtualController.GetButtonDown(ControllerButton.Grip, hand))
+            if (!VrGrip.IsDown(hand))
+                return;
+            if (!VrHandClaim.IsFree(hand) && !VrHandClaim.IsOwnedBy(hand, this))
                 return;
             if (wheelGrab != null
                 && ((hand == ControllerHand.Left && wheelGrab.LeftHolding)
@@ -232,12 +250,8 @@ namespace FullThrottleSun.Vehicle
                 return;
 
             SphereCollider handCol = null;
-            foreach (var vrHand in FindObjectsByType<VRHand>())
-                if (vrHand.GrabCollider != null)
-                {
-                    handCol = vrHand.GrabCollider;
-                    break;
-                }
+            if (VrGrip.TryGetHand(hand, out VRHand vrHand))
+                handCol = vrHand.GrabCollider;
 
             if (!Touches(worldPos, worldRot, handCol))
                 return;
@@ -248,6 +262,9 @@ namespace FullThrottleSun.Vehicle
             bool wheelTouch = wheelGrab != null && handCol != null
                               && wheelGrab.TouchesWheelWorld(worldPos, worldRot, handCol);
             if (wheelTouch && wheelDist + 0.01f < leverDist)
+                return;
+
+            if (!VrHandClaim.TryClaim(hand, this))
                 return;
 
             held = true;
@@ -285,6 +302,14 @@ namespace FullThrottleSun.Vehicle
                 lights.PulseTurn(CarLights.TurnSignal.Left);
             stickWasUp = up;
             stickWasDown = down;
+        }
+
+        void HandleWipers(ControllerHand hand)
+        {
+            if (wipers == null)
+                return;
+            if (VirtualController.GetButtonDown(ControllerButton.ThumbstickClick, hand))
+                wipers.CycleMode();
         }
 
         void HandleBeam(float axis)

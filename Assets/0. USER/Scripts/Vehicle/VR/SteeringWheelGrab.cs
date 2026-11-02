@@ -14,7 +14,7 @@ namespace FullThrottleSun.Vehicle
     /// </summary>
     [DefaultExecutionOrder(-50)]
     [RequireComponent(typeof(TireFrictionCar))]
-    public class SteeringWheelGrab : MonoBehaviour
+    public class SteeringWheelGrab : MonoBehaviour, IVrHandPoseSource, IHandPinProvider
     {
         [SerializeField] CarFollowCamera viewCamera;
 
@@ -140,23 +140,30 @@ namespace FullThrottleSun.Vehicle
                 var hand = (ControllerHand)i;
                 var go = new GameObject(hand == ControllerHand.Left ? "[VR Hand L]" : "[VR Hand R]");
                 hands[i].view = go.AddComponent<VRHand>();
-                hands[i].view.Init(this, hand, hand == ControllerHand.Left ? leftHandModel : rightHandModel, handRadius);
+                hands[i].view.Init(this, hand, hand == ControllerHand.Left ? leftHandModel : rightHandModel, handRadius, transform);
             }
+
+            HandPinHub.Register(this);
         }
 
         void OnDisable()
         {
-            foreach (var hand in hands)
+            for (int i = 0; i < hands.Length; i++)
             {
-                hand.holding = false;
-                hand.tracked = false;
+                if (hands[i].holding)
+                    VrHandClaim.Release((ControllerHand)i, this);
+                hands[i].holding = false;
+                hands[i].tracked = false;
             }
+            VrHandClaim.ReleaseAll(this);
             if (car != null)
                 car.SetWheelInput(0f, false);
         }
 
         void OnDestroy()
         {
+            HandPinHub.Unregister(this);
+            VrHandClaim.ReleaseAll(this);
             foreach (var hand in hands)
                 if (hand.view != null)
                     Destroy(hand.view.gameObject);
@@ -230,19 +237,26 @@ namespace FullThrottleSun.Vehicle
                 h.previousRotation = h.rotation;
             }
 
-            // Stalk wins while that hand is on Lever2.
-            if (lightStalk != null && lightStalk.IsHolding(hand))
+            // Another system (stalk / HandGrabbable) owns this hand.
+            if (!VrHandClaim.IsFree(hand) && !VrHandClaim.IsOwnedBy(hand, this))
             {
-                h.holding = false;
+                if (h.holding)
+                {
+                    h.holding = false;
+                    VrHandClaim.Release(hand, this);
+                }
                 return;
             }
 
             if (h.holding)
             {
-                if (!h.tracked || !VirtualController.GetButton(ControllerButton.Grip, hand))
+                if (!h.tracked || !VrGrip.IsHeld(hand))
+                {
                     h.holding = false;
+                    VrHandClaim.Release(hand, this);
+                }
             }
-            else if (h.tracked && VirtualController.GetButtonDown(ControllerButton.Grip, hand))
+            else if (h.tracked && VrGrip.IsDown(hand))
             {
                 if (!firstPerson)
                 {
@@ -260,7 +274,7 @@ namespace FullThrottleSun.Vehicle
                     bool stalkTouch = lightStalk != null && lightStalk.Touches(world, worldRot, h.view != null ? h.view.GrabCollider : null);
                     if (stalkTouch && lightStalk.DistanceTo(world) < DistanceToWheel(world) - 0.01f)
                         return; // LightStalk will claim this grip.
-                    Grab(h);
+                    Grab(h, hand);
                 }
             }
         }
@@ -271,19 +285,13 @@ namespace FullThrottleSun.Vehicle
             var handCollider = h.view.GrabCollider;
             Vector3 position = transform.TransformPoint(h.position);
             Quaternion rotation = transform.rotation * h.rotation;
-            foreach (var c in wheelColliders)
-            {
-                if (c == null || !c.enabled || !c.gameObject.activeInHierarchy)
-                    continue;
-                if (Physics.ComputePenetration(handCollider, position, rotation,
-                        c, c.transform.position, c.transform.rotation, out _, out _))
-                    return true;
-            }
-            return false;
+            return GrabOverlap.TouchesAny(handCollider, position, rotation, wheelColliders);
         }
 
-        void Grab(Hand h)
+        void Grab(Hand h, ControllerHand hand)
         {
+            if (!VrHandClaim.TryClaim(hand, this))
+                return;
             h.holding = true;
             h.grabOrder = ++grabCounter;
             h.grabPosition = wheel.InverseTransformPoint(transform.TransformPoint(h.position));
@@ -296,6 +304,8 @@ namespace FullThrottleSun.Vehicle
         /// </summary>
         void GrabAtDefault(Hand h, ControllerHand hand)
         {
+            if (!VrHandClaim.TryClaim(hand, this))
+                return;
             h.holding = true;
             h.grabOrder = ++grabCounter;
 

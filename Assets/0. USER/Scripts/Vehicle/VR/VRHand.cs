@@ -4,9 +4,9 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Visible hand for one tracked controller, spawned by SteeringWheelGrab. Follows the controller, sticks to the
-    /// steering wheel while holding it, and slides back onto the controller after letting go.
-    /// Runs after the car has turned its steering wheel for the frame.
+    /// Visible hand for one tracked controller. Spawned by <see cref="SteeringWheelGrab"/>.
+    /// Follows the tracked pose from <see cref="IVrHandPoseSource"/>, or snaps to a pin from
+    /// <see cref="HandPinHub"/> while something is grabbed (wheel, stalk, <see cref="HandGrabbable"/>).
     /// </summary>
     [DefaultExecutionOrder(100)]
     public class VRHand : MonoBehaviour
@@ -14,21 +14,25 @@ namespace FullThrottleSun.Vehicle
         [Tooltip("How quickly a released hand slides back onto the real controller. Higher = faster.")]
         [Min(1f)] [SerializeField] float returnSpeed = 20f;
 
-        SteeringWheelGrab owner;
+        IVrHandPoseSource poseSource;
         ControllerHand hand;
         Renderer[] renderers;
         bool visible = true;
         bool wasPinned;
-        // Leftover offset from the wheel after letting go, in car space, fading out.
+        // Leftover offset from a pin after letting go, in pose-source space, fading out.
+        Transform offsetSpace;
         Vector3 offsetPosition;
         Quaternion offsetRotation = Quaternion.identity;
 
+        public ControllerHand Side => hand;
+        public IVrHandPoseSource PoseSource => poseSource;
         public SphereCollider GrabCollider { get; private set; }
 
-        public void Init(SteeringWheelGrab grab, ControllerHand side, GameObject model, float radius)
+        public void Init(IVrHandPoseSource source, ControllerHand side, GameObject model, float radius, Transform offsetSpaceRoot = null)
         {
-            owner = grab;
+            poseSource = source;
             hand = side;
+            offsetSpace = offsetSpaceRoot;
             gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
 
             if (model != null)
@@ -48,7 +52,7 @@ namespace FullThrottleSun.Vehicle
 
         void LateUpdate()
         {
-            if (owner == null || !owner.TryGetTrackedPose(hand, out Vector3 trackedPosition, out Quaternion trackedRotation))
+            if (poseSource == null || !poseSource.TryGetTrackedPose(hand, out Vector3 trackedPosition, out Quaternion trackedRotation))
             {
                 SetVisible(false);
                 wasPinned = false;
@@ -58,19 +62,17 @@ namespace FullThrottleSun.Vehicle
             }
             SetVisible(true);
 
-            if (owner.TryGetPinnedPose(hand, out Vector3 pinnedPosition, out Quaternion pinnedRotation)
-                || (LightStalk.Active != null
-                    && LightStalk.Active.TryGetPinnedPose(hand, out pinnedPosition, out pinnedRotation)))
+            if (HandPinHub.TryGetPinnedPose(hand, out Vector3 pinnedPosition, out Quaternion pinnedRotation))
             {
                 transform.SetPositionAndRotation(pinnedPosition, pinnedRotation);
                 wasPinned = true;
                 return;
             }
 
-            Transform car = owner.transform;
+            Transform space = offsetSpace != null ? offsetSpace : transform.root;
             if (wasPinned)
             {
-                offsetPosition = car.InverseTransformVector(transform.position - trackedPosition);
+                offsetPosition = space.InverseTransformVector(transform.position - trackedPosition);
                 offsetRotation = Quaternion.Inverse(trackedRotation) * transform.rotation;
                 wasPinned = false;
             }
@@ -78,7 +80,9 @@ namespace FullThrottleSun.Vehicle
             float keep = Mathf.Exp(-returnSpeed * Time.deltaTime);
             offsetPosition *= keep;
             offsetRotation = Quaternion.Slerp(Quaternion.identity, offsetRotation, keep);
-            transform.SetPositionAndRotation(trackedPosition + car.TransformVector(offsetPosition), trackedRotation * offsetRotation);
+            transform.SetPositionAndRotation(
+                trackedPosition + space.TransformVector(offsetPosition),
+                trackedRotation * offsetRotation);
         }
 
         void SetVisible(bool show)
