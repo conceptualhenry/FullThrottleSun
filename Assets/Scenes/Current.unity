@@ -3415,7 +3415,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -3716,7 +3716,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1493286946
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3913,6 +3913,18 @@ PrefabInstance:
       propertyPath: m_Center.x
       value: -0.57164705
       objectReference: {fileID: 0}
+    - target: {fileID: 1019029334777124634, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Size.x
+      value: 1.2031951
+      objectReference: {fileID: 0}
+    - target: {fileID: 1019029334777124634, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.x
+      value: -0.5666878
+      objectReference: {fileID: 0}
+    - target: {fileID: 1019029334777124634, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.z
+      value: 1.1612985
+      objectReference: {fileID: 0}
     - target: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: m_Name
       value: ChunkCity2
@@ -3949,6 +3961,22 @@ PrefabInstance:
       propertyPath: reasonText
       value: 
       objectReference: {fileID: 57903992}
+    - target: {fileID: 5427437519233582624, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Size.x
+      value: 1.4113681
+      objectReference: {fileID: 0}
+    - target: {fileID: 5427437519233582624, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Size.z
+      value: 2.8111975
+      objectReference: {fileID: 0}
+    - target: {fileID: 5427437519233582624, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.x
+      value: 0.67077404
+      objectReference: {fileID: 0}
+    - target: {fileID: 5427437519233582624, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.z
+      value: 1.161299
+      objectReference: {fileID: 0}
     - target: {fileID: 7891453219194016396, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -3997,6 +4025,26 @@ PrefabInstance:
       propertyPath: reasonText
       value: 
       objectReference: {fileID: 57903992}
+    - target: {fileID: 8190919437035064316, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Size.x
+      value: 1.3452797
+      objectReference: {fileID: 0}
+    - target: {fileID: 8190919437035064316, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.x
+      value: 0.63772964
+      objectReference: {fileID: 0}
+    - target: {fileID: 8190919437035064316, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.z
+      value: 1.1612985
+      objectReference: {fileID: 0}
+    - target: {fileID: 8493078399504208418, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Size.x
+      value: 1.4047621
+      objectReference: {fileID: 0}
+    - target: {fileID: 8493078399504208418, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: m_Center.x
+      value: -0.6674715
+      objectReference: {fileID: 0}
     - target: {fileID: 8587040730059061150, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: lostScreen
       value: 
@@ -4062,7 +4110,7 @@ RectTransform:
   m_Father: {fileID: 1365642076}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -5513,7 +5561,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FullThrottleSun.Vehicle.CarFollowCamera
   target: {fileID: 558882259}
-  view: 0
+  view: 1
   switchButton: 2
   switchHand: 1
   lookHand: 1
@@ -5628,6 +5676,76 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1991532917}
   m_Mesh: {fileID: -3442278108173127478, guid: 57c5a13c21a266d4387aab9695bd454e, type: 3}
+--- !u!1 &1994297258
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1994297260}
+  - component: {fileID: 1994297259}
+  - component: {fileID: 1994297261}
+  m_Layer: 0
+  m_Name: Global Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1994297259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1994297258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: dd973cdd47f25164eb0d47f0c0039b5f, type: 2}
+--- !u!4 &1994297260
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1994297258}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 103.16259, y: 1.710855, z: -70.775055}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2092299701}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1994297261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1994297258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 453df4a5488050e449ce51296ca1d383, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TimerManager
+  volume: {fileID: 1994297259}
+  vignette: {fileID: 0}
+  energyTimer: 10
+  maxTime: 10
+  duration: 2
+  maxIntensity: 0.5
+  reasonText: {fileID: 57903992}
+  lostScreen: {fileID: 1655601322}
 --- !u!1 &2048115719
 GameObject:
   m_ObjectHideFlags: 0
@@ -5764,7 +5882,6 @@ GameObject:
   - component: {fileID: 2092299700}
   - component: {fileID: 2092299699}
   - component: {fileID: 2092299698}
-  - component: {fileID: 2092299697}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -5772,49 +5889,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2092299697
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2092299696}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ef08b99497c899943acbb9352862052f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TriggerEvents
-  onTriggerEnter:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 2119651764}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  onTriggerExit:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 2119651764}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  playerObj: {fileID: 0}
 --- !u!54 &2092299698
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5905,6 +5979,7 @@ Transform:
   - {fileID: 2119651769}
   - {fileID: 652109094}
   - {fileID: 925114436}
+  - {fileID: 1994297260}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2099604545
