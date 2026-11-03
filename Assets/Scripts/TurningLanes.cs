@@ -115,10 +115,4 @@ public class TurningLanes : MonoBehaviour
 
     }
 
-    /*So press button to indicate
-     * Dashboard materials change color and blink
-     * the game has to know that it is a turn (so keep track of rotations)
-     * A way to point out turning points?
-     * 
-     */
 }
