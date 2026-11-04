@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{f2771afb-049f-4894-8f71-ee13026a3d6d}">
+		<property name="assetPath">
+			<value>VoiceLines/TheDrive/Misc2.wav</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>4.9631746031746031</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{4b8f4bfa-abaa-4c75-ad13-6327ed18630e}</destination>
+		</relationship>
+	</object>
+</objects>
