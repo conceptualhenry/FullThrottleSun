@@ -38,7 +38,7 @@ public class TimerManager : MonoBehaviour
     {
         if (!stopTimer && Keyboard.current.shiftKey.wasPressedThisFrame)
         {
-            RestartTimer();
+            RestartSleepTimer();
         }
 
         if(isFadingIn && vignette != null)
@@ -106,7 +106,7 @@ public class TimerManager : MonoBehaviour
         }
     }
 
-    public void RestartTimer()
+    public void RestartSleepTimer()
     {
         energyTimer = maxTime;
 

@@ -4586,6 +4586,18 @@ PrefabInstance:
       propertyPath: cam
       value: 
       objectReference: {fileID: 434028683}
+    - target: {fileID: 2511535126822348380, guid: 57a7dff4428d34e4e9b225581391e835, type: 3}
+      propertyPath: waitTime
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2511535126822348380, guid: 57a7dff4428d34e4e9b225581391e835, type: 3}
+      propertyPath: decreaseRate
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2511535126822348380, guid: 57a7dff4428d34e4e9b225581391e835, type: 3}
+      propertyPath: increaseRate
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 8732409515263599420, guid: 57a7dff4428d34e4e9b225581391e835, type: 3}
       propertyPath: m_Name
       value: Blindness
