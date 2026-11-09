@@ -8,9 +8,10 @@ namespace FullThrottleSun.Vehicle
     /// longitudinal slip ratio and lateral slip angle, limited by a friction circle (μ × load × surface grip).
     /// A wheel entry is one spinning body: give it several contact offsets when one mesh is a solid axle.
     ///
-    /// Input through VirtualController. PlayStation pad: R2 throttle, L2 brake / reverse, Cross handbrake.
+    /// Input through VirtualController. PlayStation pad: R2 throttle, L2 brake, Cross handbrake.
+    /// Reverse is selected by the auto shifter (<see cref="ShiftLever"/> / <see cref="AutoGear"/>), not L2.
     /// Steering: DualSense gyro (Options to bind) and/or the cockpit wheel via SteeringWheelGrab (Quest).
-    /// Left stick is not used for steering — in third person it drives the light stalk instead.
+    /// Left stick is not used for steering (cockpit stalks use the held hand's stick).
     /// The steering wheel always shows the input (full lock = steeringWheelLock); speed only shrinks how far the front
     /// wheels follow it, like a variable steering ratio.
     /// </summary>
@@ -18,6 +19,14 @@ namespace FullThrottleSun.Vehicle
     public class TireFrictionCar : MonoBehaviour
     {
         public enum GyroGrip { Upright, Flat }
+
+        /// <summary>Automatic three-position gearbox used by <see cref="ShiftLever"/>.</summary>
+        public enum AutoGear
+        {
+            Reverse = -1,
+            Neutral = 0,
+            Drive = 1
+        }
 
         [System.Serializable]
         public class Wheel
@@ -88,8 +97,11 @@ namespace FullThrottleSun.Vehicle
         [Min(0f)] [SerializeField] float maxDriveTorque = 2000f;
         [Tooltip("Drive torque fades to zero as wheel surface speed approaches this (m/s).")]
         [Min(0.1f)] [SerializeField] float maxSpeed = 40f;
+        [Tooltip("Reverse torque as a fraction of maxDriveTorque when AutoGear is Reverse.")]
         [Range(0f, 1f)] [SerializeField] float reverseTorqueScale = 0.5f;
         [Min(0.1f)] [SerializeField] float maxReverseSpeed = 8f;
+        [Tooltip("R / N / D. ShiftLever writes this; defaults to Drive so the car still moves without a shifter.")]
+        [SerializeField] AutoGear autoGear = AutoGear.Drive;
         [Tooltip("Brake torque per tyre at full brake (N·m).")]
         [Min(0f)] [SerializeField] float brakeTorque = 1200f;
         [Tooltip("Brake torque per tyre on handbrake wheels (N·m).")]
@@ -162,15 +174,18 @@ namespace FullThrottleSun.Vehicle
 
         public Transform SteeringWheel => steeringWheel;
         public float SteeringWheelLock => steeringWheelLock;
-        /// <summary>0..1 foot brake from the left trigger (not reverse).</summary>
+        /// <summary>0..1 foot brake from the left trigger (brake only — reverse is <see cref="Gear"/>).</summary>
         public float BrakeInput => brakeInput;
         public bool HandbrakeInput => handbrakeInput;
+        public AutoGear Gear => autoGear;
+
+        public void SetGear(AutoGear gear) => autoGear = gear;
         /// <summary>Front wheel steer angle in degrees; right positive.</summary>
         public float SteerAngle => steerAngle;
 
         /// <summary>
         /// Cockpit / virtual steering-wheel angle in degrees (right positive), same value that spins the wheel model.
-        /// First person = grabbed wheel; third person = gyro / input mapped through <see cref="SteeringWheelLock"/>.
+        /// Grabbed wheel angle, or gyro / input mapped through <see cref="SteeringWheelLock"/>.
         /// </summary>
         public float SteeringWheelAngle
         {
@@ -293,19 +308,34 @@ namespace FullThrottleSun.Vehicle
             }
             steerAngle = Mathf.MoveTowards(steerAngle, targetSteer, steerRate * dt);
 
-            float drive = throttleInput;
-            float brake = 0f;
-            if (brakeInput > 0f)
+            float drive = 0f;
+            float brake = brakeInput;
+            switch (autoGear)
             {
-                if (forwardSpeed > 1f)
-                    brake = brakeInput;
-                else
-                    drive -= brakeInput * reverseTorqueScale;
+                case AutoGear.Drive:
+                    drive = throttleInput;
+                    break;
+                case AutoGear.Reverse:
+                    drive = -throttleInput * reverseTorqueScale;
+                    break;
+                default:
+                    drive = 0f;
+                    break;
             }
-            if (throttleInput > 0f && forwardSpeed < -1f)
+
+            // Throttle against travel direction acts as a brake (wrong-way / rolling opposite gear).
+            if (throttleInput > 0f)
             {
-                brake = Mathf.Max(brake, throttleInput);
-                drive = 0f;
+                if (autoGear == AutoGear.Drive && forwardSpeed < -1f)
+                {
+                    brake = Mathf.Max(brake, throttleInput);
+                    drive = 0f;
+                }
+                else if (autoGear == AutoGear.Reverse && forwardSpeed > 1f)
+                {
+                    brake = Mathf.Max(brake, throttleInput);
+                    drive = 0f;
+                }
             }
 
             int drivenTyres = 0;

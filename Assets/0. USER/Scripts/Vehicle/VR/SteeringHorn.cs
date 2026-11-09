@@ -5,23 +5,23 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Hub horn pad. VR first person: hold Grip with a free hand while overlapping the assigned
-    /// pad collider(s) → horn. Does not create or rewrite colliders — use whatever you put on this object.
+    /// Hub horn pad. VR: hold Grip with a free hand near the hub → horn.
+    /// Detection uses a world-space sphere around this transform (reliable), not only scaled MeshColliders.
     /// </summary>
     [DefaultExecutionOrder(-40)]
     public class SteeringHorn : MonoBehaviour
     {
         static readonly List<SteeringHorn> Active = new();
 
-        [Tooltip("Pad colliders. Empty = existing colliders on this object only (not children).")]
+        [Tooltip("Optional editor colliders for gizmo / legacy. Overlap also uses padRadius around this transform.")]
         [SerializeField] Collider[] hornColliders;
         [SerializeField] CarFollowCamera viewCamera;
         [SerializeField] AudioSource audioSource;
         [SerializeField] AudioClip hornClip;
+        [Tooltip("World-space reach from the horn centre (m). Inside this radius the wheel must yield.")]
+        [SerializeField] float padRadius = 0.14f;
         [Tooltip("If on, keeps playing while grip+pad; if off, plays once per press.")]
         [SerializeField] bool loopWhileHeld = true;
-        [Tooltip("Extra reach beyond the hand sphere when using distance fallback.")]
-        [SerializeField] float touchPadding = 0.02f;
 
         [Header("Debug")]
         [SerializeField] bool sounding;
@@ -31,31 +31,13 @@ namespace FullThrottleSun.Vehicle
 
         void Awake()
         {
-            ResolveHornColliders();
+            if (hornColliders == null || hornColliders.Length == 0)
+                hornColliders = GetComponents<Collider>();
 
             if (viewCamera == null)
                 viewCamera = FindAnyObjectByType<CarFollowCamera>();
 
             EnsureAudio();
-        }
-
-        void ResolveHornColliders()
-        {
-            if (hornColliders != null)
-            {
-                int live = 0;
-                for (int i = 0; i < hornColliders.Length; i++)
-                {
-                    if (hornColliders[i] != null)
-                        live++;
-                }
-                if (live == 0)
-                    hornColliders = null;
-            }
-
-            // Only pick up colliders already on THIS object — never add/disable/rewrite them.
-            if (hornColliders == null || hornColliders.Length == 0)
-                hornColliders = GetComponents<Collider>();
         }
 
         void EnsureAudio()
@@ -71,11 +53,14 @@ namespace FullThrottleSun.Vehicle
             audioSource.loop = loopWhileHeld;
             audioSource.mute = false;
             audioSource.priority = 64;
+            audioSource.bypassListenerEffects = true;
 
             if (hornClip == null)
                 hornClip = Resources.Load<AudioClip>("CarHornSimple");
             if (hornClip == null)
                 hornClip = BuildFallbackClip();
+            if (hornClip != null && hornClip.loadState == AudioDataLoadState.Unloaded)
+                hornClip.LoadAudioData();
             audioSource.clip = hornClip;
         }
 
@@ -150,44 +135,80 @@ namespace FullThrottleSun.Vehicle
 
         bool TryHornHand(ControllerHand hand)
         {
+            // Only a free hand (not gripping the wheel / stalks) can honk.
             if (!VrHandClaim.IsFree(hand))
                 return false;
             if (!VrGrip.IsHeld(hand))
                 return false;
-            if (!VrGrip.TryGetHand(hand, out VRHand vrHand) || vrHand.GrabCollider == null)
+            if (!TryGetHandWorld(hand, out Vector3 pos, out _))
                 return false;
-            if (!VrGrip.TryGetWorldPose(hand, out Vector3 pos, out Quaternion rot))
+            return IsNearPad(pos);
+        }
+
+        bool TryGetHandWorld(ControllerHand hand, out Vector3 worldPos, out Quaternion worldRot)
+        {
+            worldPos = default;
+            worldRot = Quaternion.identity;
+            if (viewCamera == null || !viewCamera.IsHeadTracked || viewCamera.Target == null)
                 return false;
-            return OverlapsHand(vrHand.GrabCollider, pos, rot);
+            var state = VirtualController.GetState(hand);
+            if (!state.isTracked)
+                return false;
+            if (!viewCamera.TryTrackedToTarget(state.position, state.rotation, out Vector3 localPos, out Quaternion localRot))
+                return false;
+            worldPos = viewCamera.Target.TransformPoint(localPos);
+            worldRot = viewCamera.Target.rotation * localRot;
+            return true;
+        }
+
+        bool IsNearPad(Vector3 worldPosition)
+            => (PadCenter() - worldPosition).sqrMagnitude <= padRadius * padRadius;
+
+        /// <summary>
+        /// Hub centre in world space. Uses this transform — not the flattened SphereCollider bounds,
+        /// which are unreliable under the pad's non-uniform scale.
+        /// </summary>
+        Vector3 PadCenter() => transform.position;
+
+        public float DistanceTo(Vector3 worldPosition)
+            => Vector3.Distance(PadCenter(), worldPosition);
+
+        public float PadRadius => padRadius;
+
+        /// <summary>
+        /// Wheel grab should yield / release when the hand is clearly on the hub, or closer to the
+        /// horn than to the rim (rim capsules otherwise steal the grip around the pad).
+        /// </summary>
+        public static bool ShouldYieldWheel(Vector3 worldPosition, float wheelDistance)
+        {
+            float bestPad = float.MaxValue;
+            float bestRadius = 0.14f;
+            for (int i = 0; i < Active.Count; i++)
+            {
+                var horn = Active[i];
+                if (horn == null || !horn.isActiveAndEnabled)
+                    continue;
+                float d = horn.DistanceTo(worldPosition);
+                if (d < bestPad)
+                {
+                    bestPad = d;
+                    bestRadius = horn.padRadius;
+                }
+            }
+            if (bestPad == float.MaxValue)
+                return false;
+            if (bestPad <= bestRadius)
+                return true;
+            return bestPad + 0.01f < wheelDistance;
         }
 
         bool OverlapsHand(SphereCollider handCollider, Vector3 handPosition, Quaternion handRotation)
         {
-            if (hornColliders == null || hornColliders.Length == 0)
-                return false;
-
-            if (GrabOverlap.TouchesAny(handCollider, handPosition, handRotation, hornColliders))
+            if (IsNearPad(handPosition))
                 return true;
-
-            float reach = (handCollider != null ? handCollider.radius : 0.05f) + touchPadding;
-            return DistanceTo(handPosition) <= reach;
-        }
-
-        public float DistanceTo(Vector3 worldPosition)
-        {
-            float best = float.MaxValue;
-            if (hornColliders == null)
-                return Vector3.Distance(transform.position, worldPosition);
-            for (int i = 0; i < hornColliders.Length; i++)
-            {
-                var c = hornColliders[i];
-                if (c == null || !c.enabled)
-                    continue;
-                float d = Vector3.Distance(c.ClosestPoint(worldPosition), worldPosition);
-                if (d < best)
-                    best = d;
-            }
-            return best < float.MaxValue ? best : Vector3.Distance(transform.position, worldPosition);
+            if (handCollider == null || hornColliders == null)
+                return false;
+            return GrabOverlap.TouchesAny(handCollider, handPosition, handRotation, hornColliders);
         }
 
         void SetSounding(bool on, ControllerHand hand)
@@ -217,6 +238,7 @@ namespace FullThrottleSun.Vehicle
                 audioSource.clip = hornClip;
             if (audioSource.clip == null)
                 return;
+            audioSource.spatialBlend = 0f;
             audioSource.loop = loopWhileHeld;
             audioSource.Play();
         }
@@ -251,5 +273,29 @@ namespace FullThrottleSun.Vehicle
             }
             return best;
         }
+
+        /// <summary>True when the hand is inside any active horn pad radius (no collider pose needed).</summary>
+        public static bool IsHandOnPad(Vector3 worldPosition)
+        {
+            for (int i = 0; i < Active.Count; i++)
+            {
+                var horn = Active[i];
+                if (horn == null || !horn.isActiveAndEnabled)
+                    continue;
+                if (horn.IsNearPad(worldPosition))
+                    return true;
+            }
+            return false;
+        }
+
+#if UNITY_EDITOR
+        void OnDrawGizmosSelected()
+        {
+            Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.35f);
+            Gizmos.DrawSphere(transform.position, padRadius);
+            Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.9f);
+            Gizmos.DrawWireSphere(transform.position, padRadius);
+        }
+#endif
     }
 }

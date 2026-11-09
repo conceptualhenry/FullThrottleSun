@@ -38,15 +38,11 @@ namespace FullThrottleSun.Controller
                 };
             }
 
-            float lookX = KeyboardBindings.GetAxis(KeyboardAction.LookLeft, KeyboardAction.LookRight);
-            float lookY = KeyboardBindings.GetAxis(KeyboardAction.LookDown, KeyboardAction.LookUp);
             return new VirtualControllerState
             {
                 activity = active,
                 trigger = KeyboardBindings.IsPressed(KeyboardAction.Throttle) ? 1f : 0f,
                 grip = KeyboardBindings.IsPressed(KeyboardAction.GripRight) ? 1f : 0f,
-                thumbstick = new Vector2(lookX, lookY),
-                thumbstickClick = KeyboardBindings.IsPressed(KeyboardAction.CameraSwitch),
                 primary = KeyboardBindings.IsPressed(KeyboardAction.Handbrake),
                 secondary = KeyboardBindings.IsPressed(KeyboardAction.Secondary)
             };

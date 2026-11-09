@@ -75,7 +75,10 @@ namespace FullThrottleSun.Vehicle
 
                 var col = rim.GetComponent<CapsuleCollider>();
                 if (col == null)
-                    col = rim.gameObject.AddComponent<CapsuleCollider>();
+                {
+                    Debug.LogWarning($"[GrabZoneRimSync] {rim.name} has no CapsuleCollider — add it in the editor.", this);
+                    continue;
+                }
                 col.isTrigger = true;
                 col.radius = capsuleRadius;
                 col.height = capsuleHeight;

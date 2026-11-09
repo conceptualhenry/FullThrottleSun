@@ -5,8 +5,7 @@ namespace FullThrottleSun.Vehicle
 {
     /// <summary>
     /// Lever1 stalk for windshield wipers. No thumbstick click —
-    /// flick stick forward = one step faster, back = one step slower (edge-triggered).
-    /// Third person: left stick. First person: grab Lever1, then that hand's stick.
+    /// grab Lever1, then flick that hand's stick forward = one step faster, back = one step slower (edge-triggered).
     /// Lights stay on Lever2 / <see cref="LightStalk"/>.
     /// </summary>
     [DefaultExecutionOrder(-35)]
@@ -20,7 +19,6 @@ namespace FullThrottleSun.Vehicle
 
         [Header("Grab")]
         [SerializeField] float touchRadius = 0.055f;
-        [SerializeField] float thirdPersonGrabDistance = 0.35f;
 
         [Header("Stick")]
         [Tooltip("Deadzone for forward / back flicks.")]
@@ -58,8 +56,7 @@ namespace FullThrottleSun.Vehicle
 
         public bool Touches(Vector3 worldPosition, Quaternion worldRotation, SphereCollider handCollider)
         {
-            bool firstPerson = viewCamera != null && viewCamera.IsFirstPerson;
-            float maxDist = firstPerson ? touchRadius : thirdPersonGrabDistance;
+            float maxDist = touchRadius;
             if (leverCollider != null)
             {
                 if ((leverCollider.ClosestPoint(worldPosition) - worldPosition).sqrMagnitude <= maxDist * maxDist)
@@ -101,34 +98,15 @@ namespace FullThrottleSun.Vehicle
                 lightStalk = FindAnyObjectByType<LightStalk>();
 
             restLocalRotation = transform.localRotation;
-            EnsureCollider();
+            ResolveCollider();
             HandPinHub.Register(this);
         }
 
-        void EnsureCollider()
+        void ResolveCollider()
         {
             leverCollider = GetComponent<Collider>();
-            if (leverCollider != null)
-            {
-                leverCollider.isTrigger = true;
-                return;
-            }
-
-            var box = gameObject.AddComponent<BoxCollider>();
-            var mf = GetComponent<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-            {
-                box.center = mf.sharedMesh.bounds.center;
-                Vector3 size = mf.sharedMesh.bounds.size;
-                size = Vector3.Max(size, Vector3.one * 0.015f) * 1.1f;
-                box.size = size;
-            }
-            else
-            {
-                box.size = new Vector3(0.1f, 0.035f, 0.05f);
-            }
-            box.isTrigger = true;
-            leverCollider = box;
+            if (leverCollider == null)
+                Debug.LogWarning("[WiperStalk] No Collider on Lever1 — add one in the editor (trigger recommended).", this);
         }
 
         void OnDisable()
@@ -148,39 +126,22 @@ namespace FullThrottleSun.Vehicle
             if (wipers == null)
                 return;
 
-            bool thirdPerson = viewCamera == null || !viewCamera.IsFirstPerson;
             float poseTarget = 0f;
 
-            if (thirdPerson)
-            {
-                if (held)
-                    held = false;
-                IsHeld = false;
-                if (Active == this)
-                    Active = null;
+            UpdateGrab();
+            IsHeld = held;
+            Active = held ? this : (Active == this ? null : Active);
 
-                Vector2 stick = VirtualController.GetThumbstick(ControllerHand.Left);
+            if (held)
+            {
+                Vector2 stick = VirtualController.GetThumbstick(heldHand);
                 HandleStick(stick.y);
                 if (Mathf.Abs(stick.y) > stickThreshold)
                     poseTarget = Mathf.Sign(stick.y);
             }
             else
             {
-                UpdateGrab();
-                IsHeld = held;
-                Active = held ? this : (Active == this ? null : Active);
-
-                if (held)
-                {
-                    Vector2 stick = VirtualController.GetThumbstick(heldHand);
-                    HandleStick(stick.y);
-                    if (Mathf.Abs(stick.y) > stickThreshold)
-                        poseTarget = Mathf.Sign(stick.y);
-                }
-                else
-                {
-                    stickWasFwd = stickWasBack = false;
-                }
+                stickWasFwd = stickWasBack = false;
             }
 
             tiltPose = Mathf.MoveTowards(tiltPose, poseTarget, 10f * Time.deltaTime);
@@ -257,6 +218,9 @@ namespace FullThrottleSun.Vehicle
             if (lightStalk != null
                 && lightStalk.Touches(worldPos, worldRot, handCol)
                 && lightStalk.DistanceTo(worldPos) <= leverDist + 0.02f)
+                return;
+
+            if (VrGrabBroker.PreferFreeOverCockpit(hand, worldPos, worldRot, handCol, leverDist))
                 return;
 
             if (!VrHandClaim.TryClaim(hand, this))

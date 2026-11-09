@@ -4,50 +4,107 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Drop this on any prop to make it grabbable with the Quest grip button using the same
-    /// overlap + claim rules as the steering wheel / light stalk.
-    /// While held, the object follows the hand and the visible <see cref="VRHand"/> pins to the grab pose.
+    /// Free prop grab (soda can, etc.): overlap the hand sphere, then press Grip.
+    /// When several free props (and/or cockpit controls) overlap, <see cref="VrGrabBroker"/>
+    /// awards the grab to whichever surface is closest to the hand centre.
+    /// While held, the object follows the hand (kinematic). On release it becomes a free
+    /// rigidbody with throw velocity so it collides and falls normally.
     /// </summary>
     [DefaultExecutionOrder(-30)]
     public class HandGrabbable : MonoBehaviour, IHandPinProvider
     {
-        [Tooltip("Colliders the hand sphere must touch. Empty = colliders on this object.")]
+        [Tooltip("Colliders the hand sphere must touch. Empty = colliders on this object / children.")]
         [SerializeField] Collider[] grabColliders;
-        [Tooltip("Higher wins when several grabbables overlap the same hand (wheel/stalk still use their own logic).")]
+        [Tooltip("Tie-break only among free props at the same distance. Higher wins.")]
         [SerializeField] int priority;
-        [Tooltip("If set, only this hand can grab. Leave as both by using two components, or leave default and either hand works.")]
         [SerializeField] bool allowLeft = true;
         [SerializeField] bool allowRight = true;
-        [Tooltip("Keep world scale when parenting to the hand pose.")]
+        [Tooltip("Keep world scale while the hand drives the pose.")]
         [SerializeField] bool keepWorldScale = true;
+        [Tooltip("Unparent on grab and enable Rigidbody physics on release.")]
+        [SerializeField] bool physicsOnRelease = true;
+        [Tooltip("Scales hand motion into release linear velocity.")]
+        [SerializeField] float throwVelocityScale = 1.25f;
+        [SerializeField] float throwAngularScale = 1f;
+        [SerializeField] float maxThrowSpeed = 12f;
 
         [Header("Debug")]
         [SerializeField] bool held;
         [SerializeField] ControllerHand heldHand;
 
+        Rigidbody rb;
         Vector3 localPos;
         Quaternion localRot = Quaternion.identity;
         Vector3 pinLocalPos;
         Quaternion pinLocalRot = Quaternion.identity;
         Vector3 cachedScale;
+        Vector3 prevWorldPos;
+        Quaternion prevWorldRot = Quaternion.identity;
+        Vector3 throwVelocity;
+        Vector3 throwAngularVelocity;
+        bool hasMotionSample;
 
         public bool IsHeld => held;
         public ControllerHand HeldHand => heldHand;
         public int Priority => priority;
+
+        public bool IsEligibleToGrab(ControllerHand hand)
+        {
+            if (held)
+                return false;
+            if (hand == ControllerHand.Left && !allowLeft)
+                return false;
+            if (hand == ControllerHand.Right && !allowRight)
+                return false;
+            return isActiveAndEnabled;
+        }
+
+        public bool TouchesHand(Vector3 handPosition, Quaternion handRotation, SphereCollider handCollider)
+            => GrabOverlap.TouchesAny(handCollider, handPosition, handRotation, grabColliders);
+
+        public float DistanceToHand(Vector3 handPosition)
+        {
+            float best = float.MaxValue;
+            if (grabColliders == null)
+                return best;
+            for (int i = 0; i < grabColliders.Length; i++)
+            {
+                float d = GrabOverlap.DistanceToCollider(grabColliders[i], handPosition);
+                if (d < best)
+                    best = d;
+            }
+            return best;
+        }
 
         void Awake()
         {
             if (grabColliders == null || grabColliders.Length == 0)
                 grabColliders = GetComponentsInChildren<Collider>();
             cachedScale = transform.lossyScale;
+
+            rb = GetComponent<Rigidbody>();
+            if (physicsOnRelease && rb == null)
+                rb = gameObject.AddComponent<Rigidbody>();
+            if (rb != null)
+            {
+                // Sit still on the car until first grab; free physics starts on release.
+                rb.isKinematic = true;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+                rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            }
         }
 
-        void OnEnable() => HandPinHub.Register(this);
+        void OnEnable()
+        {
+            VrGrabBroker.Register(this);
+            HandPinHub.Register(this);
+        }
 
         void OnDisable()
         {
             if (held)
                 Release();
+            VrGrabBroker.Unregister(this);
             HandPinHub.Unregister(this);
             VrHandClaim.ReleaseAll(this);
         }
@@ -62,65 +119,109 @@ namespace FullThrottleSun.Vehicle
                     return;
                 }
 
-                // Keep the prop glued to the hand at the offset captured on grab.
-                transform.SetPositionAndRotation(pos + rot * localPos, rot * localRot);
+                Vector3 worldPos = pos + rot * localPos;
+                Quaternion worldRot = rot * localRot;
+                SampleThrowMotion(worldPos, worldRot);
+
+                if (rb != null)
+                {
+                    rb.MovePosition(worldPos);
+                    rb.MoveRotation(worldRot);
+                }
+                else
+                {
+                    transform.SetPositionAndRotation(worldPos, worldRot);
+                }
+
                 if (keepWorldScale)
                     SetLossyScale(cachedScale);
                 return;
             }
 
-            TryBeginGrab(ControllerHand.Left);
+            TryBeginIfSelected(ControllerHand.Left);
             if (!held)
-                TryBeginGrab(ControllerHand.Right);
+                TryBeginIfSelected(ControllerHand.Right);
         }
 
-        void TryBeginGrab(ControllerHand hand)
+        void TryBeginIfSelected(ControllerHand hand)
         {
-            if (hand == ControllerHand.Left && !allowLeft)
-                return;
-            if (hand == ControllerHand.Right && !allowRight)
-                return;
-            if (!VrGrip.IsDown(hand))
-                return;
-            if (!VrHandClaim.IsFree(hand))
-                return;
-            if (!VrGrip.TryGetHand(hand, out VRHand vrHand) || vrHand.GrabCollider == null)
+            if (!VrGrabBroker.ShouldFreeGrabBegin(this, hand))
                 return;
             if (!VrGrip.TryGetWorldPose(hand, out Vector3 pos, out Quaternion rot))
                 return;
-            if (!GrabOverlap.TouchesAny(vrHand.GrabCollider, pos, rot, grabColliders))
-                return;
-
-            // Yield if cockpit systems already own a closer grip this frame (they run earlier).
-            var wheel = FindAnyObjectByType<SteeringWheelGrab>();
-            if (wheel != null
-                && ((hand == ControllerHand.Left && wheel.LeftHolding)
-                    || (hand == ControllerHand.Right && wheel.RightHolding)))
-                return;
-            if (LightStalk.Active != null && LightStalk.Active.IsHolding(hand))
-                return;
-            if (WiperStalk.Active != null && WiperStalk.Active.IsHolding(hand))
-                return;
-
             if (!VrHandClaim.TryClaim(hand, this))
                 return;
 
             held = true;
             heldHand = hand;
-            // Offset from hand → object at grab time.
+            cachedScale = transform.lossyScale;
+
+            // World-space free body while held / after release (parented RB under a moving car is unstable).
+            if (physicsOnRelease && transform.parent != null)
+                transform.SetParent(null, true);
+
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
             localPos = Quaternion.Inverse(rot) * (transform.position - pos);
             localRot = Quaternion.Inverse(rot) * transform.rotation;
             pinLocalPos = transform.InverseTransformPoint(pos);
             pinLocalRot = Quaternion.Inverse(transform.rotation) * rot;
-            cachedScale = transform.lossyScale;
+
+            prevWorldPos = transform.position;
+            prevWorldRot = transform.rotation;
+            throwVelocity = Vector3.zero;
+            throwAngularVelocity = Vector3.zero;
+            hasMotionSample = false;
         }
 
         void Release()
         {
             if (!held)
                 return;
-            VrHandClaim.Release(heldHand, this);
+
+            ControllerHand hand = heldHand;
             held = false;
+            VrHandClaim.Release(hand, this);
+
+            if (!physicsOnRelease || rb == null)
+                return;
+
+            if (transform.parent != null)
+                transform.SetParent(null, true);
+
+            rb.isKinematic = false;
+            Vector3 v = Vector3.ClampMagnitude(throwVelocity * throwVelocityScale, maxThrowSpeed);
+            rb.linearVelocity = v;
+            rb.angularVelocity = throwAngularVelocity * throwAngularScale;
+        }
+
+        void SampleThrowMotion(Vector3 worldPos, Quaternion worldRot)
+        {
+            float dt = Time.deltaTime;
+            if (dt < 1e-5f)
+                return;
+
+            if (hasMotionSample)
+            {
+                throwVelocity = (worldPos - prevWorldPos) / dt;
+                Quaternion delta = worldRot * Quaternion.Inverse(prevWorldRot);
+                delta.ToAngleAxis(out float angleDeg, out Vector3 axis);
+                if (angleDeg > 180f)
+                    angleDeg -= 360f;
+                if (axis.sqrMagnitude > 1e-8f)
+                    throwAngularVelocity = axis.normalized * (angleDeg * Mathf.Deg2Rad / dt);
+                else
+                    throwAngularVelocity = Vector3.zero;
+            }
+
+            prevWorldPos = worldPos;
+            prevWorldRot = worldRot;
+            hasMotionSample = true;
         }
 
         public bool TryGetPinnedPose(ControllerHand hand, out Vector3 position, out Quaternion rotation)
