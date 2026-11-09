@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class WorldGen : MonoBehaviour
@@ -9,11 +11,17 @@ public class WorldGen : MonoBehaviour
 
     public Chunk currentChunk;
     public Chunk newChunk;
-    public GameObject toSpawn;
+
+    [SerializeField] List<GameObject> mainChunks = new List<GameObject>();
+    [SerializeField] List<GameObject> transitionChunks = new List<GameObject>();
+
+    GameObject toSpawn;
     public Direction spawnDirection;
 
     [SerializeField] float chunkWidth;
     [SerializeField] public float genDist;
+
+    public bool transition = false;
 
     Vector3 exitN;
     Vector3 exitS;
@@ -83,8 +91,16 @@ public class WorldGen : MonoBehaviour
         else if (d == Direction.East)  spawnPt = new Vector3(exitE.x + chunkWidth,0,exitE.z);
         else if (d == Direction.West)  spawnPt = new Vector3(exitW.x - chunkWidth,0,exitW.z);
         
+        if (transition)
+        {
+            toSpawn = transitionChunks[UnityEngine.Random.Range(0, transitionChunks.Count)];
+        }
+        else
+        {
+            toSpawn = mainChunks[UnityEngine.Random.Range(0, mainChunks.Count)];
+        }
 
-        GameObject g = Instantiate(toSpawn, spawnPt, Quaternion.identity);
+            GameObject g = Instantiate(toSpawn, spawnPt, Quaternion.identity);
         return g.GetComponent<Chunk>();
     }
 
@@ -94,6 +110,7 @@ public class WorldGen : MonoBehaviour
         currentChunk = newChunk;
         newChunk = temp;
         spawnDirection = switchDirection(spawnDirection);
+        transition = !transition;
         setExits();
     }
 

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3812246812731238538}
   - component: {fileID: 371288746811170676}
   - component: {fileID: 7798013549422975156}
+  - component: {fileID: 5721412474418338584}
   m_Layer: 0
   m_Name: Radio
   m_TagString: Untagged
@@ -143,6 +144,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13f341f775a368443809bb2cf8a07e67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RadioPlayer
+  Voice:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  Music:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   Transitions:
   - {fileID: 8300000, guid: ab78a6ee63a0d43448ded2bf3865b39a, type: 3}
   - {fileID: 8300000, guid: 2e8e44833cfbf48469555243445c34ef, type: 3}
@@ -164,6 +179,37 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 43a356f14b50f0a4a8129ab8585880af, type: 3}
   - {fileID: 8300000, guid: 30c9473c0c2e3f14582037a7d3139465, type: 3}
   - {fileID: 8300000, guid: 6883b861d992bfc4daaa0f826811c479, type: 3}
+--- !u!114 &5721412474418338584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4423259629677996412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a6610d2e704f1648819acc8d7460285, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMODUnity::FMODUnity.StudioEventEmitter
+  CollisionTag: 
+  EventReference:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  Event: 
+  EventPlayTrigger: 0
+  EventStopTrigger: 0
+  AllowFadeout: 1
+  TriggerOnce: 0
+  Preload: 0
+  NonRigidbodyVelocity: 0
+  Params: []
+  OverrideAttenuation: 0
+  OverrideMinDistance: -1
+  OverrideMaxDistance: -1
 --- !u!1 &5960996023770787665
 GameObject:
   m_ObjectHideFlags: 0
