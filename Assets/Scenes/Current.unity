@@ -943,21 +943,17 @@ PrefabInstance:
       value: worldGenerator
       objectReference: {fileID: 0}
     - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
-      propertyPath: genDist
-      value: 115
-      objectReference: {fileID: 0}
-    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
-      propertyPath: toSpawn
-      value: 
-      objectReference: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
-    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
-      propertyPath: chunkWidth
-      value: 150
-      objectReference: {fileID: 0}
-    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
       propertyPath: currentChunk
       value: 
       objectReference: {fileID: 1534230915}
+    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
+      propertyPath: 'mainChunks.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
+      propertyPath: 'transitionChunks.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
