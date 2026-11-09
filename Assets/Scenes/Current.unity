@@ -5788,10 +5788,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TimerManager
   volume: {fileID: 1994297259}
   vignette: {fileID: 0}
-  energyTimer: 10
-  maxTime: 10
-  duration: 2
-  maxIntensity: 0.5
+  energyTimer: 15
+  maxTime: 15
+  duration: 1.5
+  maxIntensity: 0.4
   reasonText: {fileID: 57903992}
   lostScreen: {fileID: 1655601322}
 --- !u!1 &2048115719
