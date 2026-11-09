@@ -110,8 +110,8 @@ public class TurningLanes : MonoBehaviour
             startingTurnPoint = angleRotated;
         }
 
-        Debug.Log($"total point:{totalTurnPoint}");
-        Debug.Log($"starting point:{startingTurnPoint}");
+        //Debug.Log($"total point:{totalTurnPoint}");
+        //Debug.Log($"starting point:{startingTurnPoint}");
     }
 
 }
