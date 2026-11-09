@@ -1,5 +1,6 @@
 using System.Collections;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -11,7 +12,8 @@ public class TimerManager : MonoBehaviour
     public Volume volume;
     public Vignette vignette;
     private float elapsedTime = 0f;
-    private bool isFading = false;
+    private bool isFadingIn = false;
+    private bool isFadingOut = false;
     private float startIntensity = 0f;
 
     [Header("Sleep Settings")]
@@ -39,7 +41,7 @@ public class TimerManager : MonoBehaviour
             RestartTimer();
         }
 
-        if(isFading && vignette != null)
+        if(isFadingIn && vignette != null)
         {
             elapsedTime += Time.deltaTime;
             float fadeComplete = elapsedTime / duration;
@@ -48,9 +50,22 @@ public class TimerManager : MonoBehaviour
 
             if(fadeComplete >= 1f)
             {
-                isFading = false;
+                isFadingIn = false;
             }
         }
+        else if(isFadingOut && vignette != null)
+        {
+            elapsedTime += Time.deltaTime;
+            float fadeComplete = elapsedTime / duration;
+
+            vignette.intensity.value = Mathf.Lerp(startIntensity, 0f, fadeComplete);
+
+            if (fadeComplete >= 1f)
+            {
+                isFadingOut = false;
+            }
+        }
+        
     }
 
     private void Awake()
@@ -94,6 +109,12 @@ public class TimerManager : MonoBehaviour
     public void RestartTimer()
     {
         energyTimer = maxTime;
+
+        if (vignette == null) return;
+
+        startIntensity = vignette.intensity.value;
+        elapsedTime = 0f;
+        isFadingOut = true;
     }
 
     public void TriggerVignette()
@@ -102,6 +123,6 @@ public class TimerManager : MonoBehaviour
 
         startIntensity = vignette.intensity.value;
         elapsedTime = 0f;
-        isFading = true;
+        isFadingIn = true;
     }
 }

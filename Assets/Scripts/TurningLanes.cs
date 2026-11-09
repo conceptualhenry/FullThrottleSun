@@ -38,8 +38,6 @@ public class TurningLanes : MonoBehaviour
             totalTurnPoint = 0f;
         }
 
-       // Debug.Log($"{totalTurnPoint}");
-
         if(Keyboard.current.jKey.wasPressedThisFrame)
         {
             leftBlinkerOn = true;
@@ -68,7 +66,7 @@ public class TurningLanes : MonoBehaviour
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
-        if(totalTurnPoint < -20f)
+        if(totalTurnPoint < -60f)
         {
             if(leftBlinkerOn)
             {
@@ -79,10 +77,10 @@ public class TurningLanes : MonoBehaviour
             {
                 lostScreen.SetActive(true);
                 reasonText.text = "Failure to indicate left turn.";
-                Debug.Log("Illigal turn");
+                Debug.Log("Illegal turn");
             }
         }
-        else if (totalTurnPoint > 20f)
+        else if (totalTurnPoint > 60f)
         {
             if(rightBlinkerOn)
             {
@@ -111,8 +109,9 @@ public class TurningLanes : MonoBehaviour
         {
             startingTurnPoint = angleRotated;
         }
-        
 
+        Debug.Log($"total point:{totalTurnPoint}");
+        Debug.Log($"starting point:{startingTurnPoint}");
     }
 
 }
