@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{37bb17cf-c28e-4899-adf6-816df759dd0e}">
+		<property name="assetPath">
+			<value>VoiceLines/TheDrive/Default2.wav</value>
+		</property>
+		<property name="isStreaming">
+			<value>true</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>8.8058730158730167</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{4b8f4bfa-abaa-4c75-ad13-6327ed18630e}</destination>
+		</relationship>
+	</object>
+</objects>

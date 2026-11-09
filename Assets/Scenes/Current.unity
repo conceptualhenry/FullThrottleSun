@@ -943,21 +943,17 @@ PrefabInstance:
       value: worldGenerator
       objectReference: {fileID: 0}
     - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
-      propertyPath: genDist
-      value: 115
-      objectReference: {fileID: 0}
-    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
-      propertyPath: toSpawn
-      value: 
-      objectReference: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
-    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
-      propertyPath: chunkWidth
-      value: 150
-      objectReference: {fileID: 0}
-    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
       propertyPath: currentChunk
       value: 
       objectReference: {fileID: 1534230915}
+    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
+      propertyPath: 'mainChunks.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+    - target: {fileID: 8473585751605843516, guid: c4bd571bb255f2f4eb82cee429040351, type: 3}
+      propertyPath: 'transitionChunks.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2472398407295686137, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3229,6 +3225,46 @@ PrefabInstance:
       propertyPath: m_Name
       value: Radio
       objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Path
+      value: event:/TheDriveMusic
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Path
+      value: event:/TheDriveVoice
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data1
+      value: -622746478
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data2
+      value: 1191434584
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data3
+      value: -809433932
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data4
+      value: -1192715474
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data1
+      value: -760930841
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data2
+      value: 1191990469
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data3
+      value: -336856676
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data4
+      value: -8046202
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 5960996023770787665, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
@@ -3342,11 +3378,11 @@ GameObject:
   m_Component:
   - component: {fileID: 1354336097}
   - component: {fileID: 1354336096}
-  - component: {fileID: 1354336095}
   - component: {fileID: 1354336094}
   - component: {fileID: 1354336093}
   - component: {fileID: 1354336098}
   - component: {fileID: 1354336099}
+  - component: {fileID: 1354336100}
   m_Layer: 6
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -3436,14 +3472,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!81 &1354336095
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1354336092}
-  m_Enabled: 1
 --- !u!20 &1354336096
 Camera:
   m_ObjectHideFlags: 0
@@ -3587,6 +3615,20 @@ MonoBehaviour:
   blendDistance: 0
   weight: 1
   priority: 0
+--- !u!114 &1354336100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354336092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86c6556701af9e04380698b89f691b6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMODUnity::FMODUnity.StudioListener
+  nonRigidbodyVelocity: 0
+  attenuationObject: {fileID: 0}
 --- !u!1 &1365642075
 GameObject:
   m_ObjectHideFlags: 0
@@ -5341,11 +5383,11 @@ GameObject:
   m_Component:
   - component: {fileID: 1911942547}
   - component: {fileID: 1911942546}
-  - component: {fileID: 1911942545}
   - component: {fileID: 1911942544}
   - component: {fileID: 1911942543}
   - component: {fileID: 1911942542}
   - component: {fileID: 1911942548}
+  - component: {fileID: 1911942549}
   m_Layer: 6
   m_Name: Main Camera (With sun)
   m_TagString: MainCamera
@@ -5474,14 +5516,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!81 &1911942545
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1911942540}
-  m_Enabled: 1
 --- !u!20 &1911942546
 Camera:
   m_ObjectHideFlags: 0
@@ -5586,6 +5620,20 @@ MonoBehaviour:
   headRecenterButton: 3
   headRecenterHand: 0
   maxHeadOffset: 0.3
+--- !u!114 &1911942549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1911942540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86c6556701af9e04380698b89f691b6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMODUnity::FMODUnity.StudioListener
+  nonRigidbodyVelocity: 0
+  attenuationObject: {fileID: 0}
 --- !u!1 &1991532917
 GameObject:
   m_ObjectHideFlags: 0

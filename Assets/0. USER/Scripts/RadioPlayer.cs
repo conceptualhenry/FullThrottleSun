@@ -1,8 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using FMOD.Studio;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Audio;
+using Random = UnityEngine.Random;
 
 public class RadioPlayer : MonoBehaviour
 {
@@ -16,6 +19,9 @@ public class RadioPlayer : MonoBehaviour
 
     State currentState;
     State prevState;
+
+    [SerializeField] FMODUnity.EventReference Voice;
+    [SerializeField] FMODUnity.EventReference Music;
 
     AudioSource source;
 
@@ -31,12 +37,23 @@ public class RadioPlayer : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        EventInstance voice = FMODUnity.RuntimeManager.CreateInstance(Voice);
+        voice.start();
+        /*
         source = GetComponent<AudioSource>();
         source.clip = TheDriveVoice[0];
         currentState = State.Voice;
         source.Play();
-        StartCoroutine(PlayRadio());
+        StartCoroutine(PlayRadio());*/
     }
+
+    /*[AOT.MonoPInvokeCallback(typeof(FMOD.Studio.EVENT_CALLBACK))]
+    static FMOD.RESULT DialogueEventCallback(FMOD.Studio.EVENT_CALLBACK_TYPE type, IntPtr instancePtr, IntPtr parameterPtr)
+    {
+        print("callback!");
+        
+        return FMOD.RESULT.OK;
+    }*/
 
     // Update is called once per frame
     void Update()
