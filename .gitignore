@@ -79,6 +79,4 @@ crashlytics-build.properties
 /Assets/Toon Fantasy Nature/Scenes/Demo_Scene_*.unity.meta
 
 # Ignore Large Terrian Textures
-/Assets/Toon Fantasy Nature/Terrian/*.tif
-/Assets/Toon Fantasy Nature/Terrian/*.tif.meta
 /Assets/Toon Fantasy Nature/Terrain
