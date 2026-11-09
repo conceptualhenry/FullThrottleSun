@@ -45,7 +45,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldGen
   currentChunk: {fileID: 0}
-  toSpawn: {fileID: 0}
+  newChunk: {fileID: 0}
+  mainChunks:
+  - {fileID: 7614036385077930877, guid: 228c5cfab5213904dbea7d22859c72cb, type: 3}
+  transitionChunks:
+  - {fileID: 7614036385077930877, guid: 0dba742bdfbdbac47ab25b9fdec683e9, type: 3}
   spawnDirection: 0
-  chunkWidth: 0
-  genDist: 0
+  chunkWidth: 150
+  genDist: 115
