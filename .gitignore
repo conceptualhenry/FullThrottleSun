@@ -75,8 +75,8 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # Ignore Toon Fantasy Nature Demo Scenes
-/Assets/Toon Fantasy Nature/Scenes/Demo_Scene_*.unity
-/Assets/Toon Fantasy Nature/Scenes/Demo_Scene_*.unity.meta
+/Assets/Art/Toon Fantasy Nature/Scenes/Demo_Scene_*.unity
+/Assets/Art/Toon Fantasy Nature/Scenes/Demo_Scene_*.unity.meta
 
 # Ignore Large Terrian Textures
 /Assets/Toon Fantasy Nature/Terrain
