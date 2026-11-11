@@ -33,6 +33,7 @@ TagManager:
   - QDSUIToggleThumbnail
   - StopLine
   - StopSign
+  - PlayerHead
   layers:
   - Default
   - TransparentFX

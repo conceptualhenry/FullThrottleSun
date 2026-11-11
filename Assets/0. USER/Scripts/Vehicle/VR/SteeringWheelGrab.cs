@@ -233,20 +233,11 @@ namespace FullThrottleSun.Vehicle
 
             if (h.holding)
             {
+                // While gripping the rim, stay locked — never yield to the horn mid-turn.
                 if (!h.tracked || !VrGrip.IsHeld(hand))
                 {
                     h.holding = false;
                     VrHandClaim.Release(hand, this);
-                }
-                else
-                {
-                    // Hand slid onto the hub while still gripping — release so the horn can fire.
-                    Vector3 heldWorld = transform.TransformPoint(h.position);
-                    if (SteeringHorn.ShouldYieldWheel(heldWorld, DistanceToWheel(heldWorld)))
-                    {
-                        h.holding = false;
-                        VrHandClaim.Release(hand, this);
-                    }
                 }
             }
             else if (h.tracked && firstPerson && VrGrip.IsDown(hand) && TouchesWheel(h))
@@ -254,9 +245,6 @@ namespace FullThrottleSun.Vehicle
                 Vector3 world = transform.TransformPoint(h.position);
                 Quaternion worldRot = transform.rotation * h.rotation;
                 var handCol = h.view != null ? h.view.GrabCollider : null;
-                // Hub / rim overlap: rim capsules otherwise steal the grip before the horn runs.
-                if (SteeringHorn.ShouldYieldWheel(world, DistanceToWheel(world)))
-                    return;
                 if (PreferCloserOverWheel(hand, world, handCol, worldRot))
                     return;
                 Grab(h, hand);

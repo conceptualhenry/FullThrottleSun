@@ -61,6 +61,16 @@ public class SleepTimer : MonoBehaviour
     public void RestartTimer()
     {
         energyTimer = maxTime;
-        energySlider.value = energyTimer;
+        if (energySlider != null)
+            energySlider.value = energyTimer;
+
+        // Drinking can revive after the timer already hit zero.
+        if (stopTimer)
+        {
+            stopTimer = false;
+            if (lostScreen)
+                lostScreen.SetActive(false);
+            StartCoroutine(StartTimerClock());
+        }
     }
 }

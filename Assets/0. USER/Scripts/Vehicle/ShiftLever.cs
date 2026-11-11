@@ -4,10 +4,9 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Automatic R / N / D shifter. Same interaction as the wiper stalk:
-    /// grab <c>Shift_Lever</c>, then flick that hand's stick forward = toward Drive,
-    /// back = toward Reverse (edge-triggered one step: R ↔ N ↔ D).
-    /// Keyboard: Digit1 = R, Digit2 = N, Digit3 = D (remappable).
+    /// Automatic R / N / D shifter.
+    /// Grab <c>Shift_Lever</c>, then push/pull the hand (or flick that hand's stick)
+    /// to step R ↔ N ↔ D. Keyboard: 1 = R, 2 = N, 3 = D.
     /// </summary>
     [DefaultExecutionOrder(-40)]
     public class ShiftLever : MonoBehaviour, IHandPinProvider
@@ -18,16 +17,17 @@ namespace FullThrottleSun.Vehicle
         [SerializeField] Transform carRoot;
 
         [Header("Grab")]
-        [SerializeField] float touchRadius = 0.07f;
+        [SerializeField] float touchRadius = 0.12f;
 
-        [Header("Stick")]
-        [Tooltip("Deadzone for forward / back flicks.")]
+        [Header("Hand throw (car-local Z)")]
+        [Tooltip("Hand travel from Neutral toward Drive / Reverse before a step fires (m).")]
+        [SerializeField] float handStepMeters = 0.045f;
         [SerializeField] float stickThreshold = 0.65f;
 
         [Header("Lever pose (visual)")]
         [Tooltip("Tip angle at Drive (+) / Reverse (−). Neutral is 0.")]
-        [SerializeField] float tiltDegrees = 14f;
-        [SerializeField] float poseLerp = 12f;
+        [SerializeField] float tiltDegrees = 18f;
+        [SerializeField] float poseLerp = 14f;
 
         [Header("Start")]
         [SerializeField] TireFrictionCar.AutoGear startGear = TireFrictionCar.AutoGear.Drive;
@@ -41,6 +41,8 @@ namespace FullThrottleSun.Vehicle
         Quaternion restLocalRotation;
         Vector3 pinLocalPosition;
         Quaternion pinLocalRotation = Quaternion.identity;
+        Vector3 grabHandCarLocal;
+        float handAccum;
         bool stickWasFwd;
         bool stickWasBack;
         float tiltPose;
@@ -87,6 +89,18 @@ namespace FullThrottleSun.Vehicle
 
         void Awake()
         {
+            ResolveRefs();
+            restLocalRotation = transform.localRotation;
+            gear = startGear;
+            tiltPose = PoseForGear(gear);
+            transform.localRotation = restLocalRotation * Quaternion.Euler(tiltPose * tiltDegrees, 0f, 0f);
+            ApplyGearToCar();
+            ResolveCollider();
+            HandPinHub.Register(this);
+        }
+
+        void ResolveRefs()
+        {
             if (car == null)
                 car = GetComponentInParent<TireFrictionCar>();
             if (carRoot == null)
@@ -96,14 +110,6 @@ namespace FullThrottleSun.Vehicle
             if (wheelGrab == null)
                 wheelGrab = GetComponentInParent<SteeringWheelGrab>()
                             ?? FindAnyObjectByType<SteeringWheelGrab>();
-
-            restLocalRotation = transform.localRotation;
-            gear = startGear;
-            tiltPose = PoseForGear(gear);
-            transform.localRotation = restLocalRotation * Quaternion.Euler(tiltPose * tiltDegrees, 0f, 0f);
-            ApplyGearToCar();
-            ResolveCollider();
-            HandPinHub.Register(this);
         }
 
         void ResolveCollider()
@@ -126,6 +132,9 @@ namespace FullThrottleSun.Vehicle
 
         void Update()
         {
+            if (car == null || viewCamera == null)
+                ResolveRefs();
+
             HandleKeyboard();
 
             float poseTarget = PoseForGear(gear);
@@ -140,16 +149,20 @@ namespace FullThrottleSun.Vehicle
 
             Active = held ? this : (Active == this ? null : Active);
 
-            if (held)
+            if (held && TryGetHandWorld(heldHand, out Vector3 worldPos, out _))
             {
+                HandleHandThrow(worldPos);
                 Vector2 stick = VirtualController.GetThumbstick(heldHand);
                 HandleStick(stick.y);
                 if (Mathf.Abs(stick.y) > stickThreshold)
                     poseTarget = Mathf.Sign(stick.y);
+                else if (Mathf.Abs(handAccum) > 0.01f)
+                    poseTarget = Mathf.Clamp(handAccum / Mathf.Max(0.01f, handStepMeters), -1f, 1f);
             }
             else
             {
                 stickWasFwd = stickWasBack = false;
+                handAccum = 0f;
             }
 
             tiltPose = Mathf.MoveTowards(tiltPose, poseTarget, 10f * Time.deltaTime);
@@ -158,7 +171,30 @@ namespace FullThrottleSun.Vehicle
                 transform.localRotation, target, 1f - Mathf.Exp(-poseLerp * Time.deltaTime));
         }
 
-        /// <summary>+Y = forward = one step toward Drive; −Y = back = one step toward Reverse.</summary>
+        void HandleHandThrow(Vector3 worldPos)
+        {
+            if (carRoot == null)
+                return;
+
+            Vector3 now = carRoot.InverseTransformPoint(worldPos);
+            // Automatic gate: forward (car +Z) toward Drive, back toward Reverse.
+            float delta = now.z - grabHandCarLocal.z;
+            grabHandCarLocal = now;
+            handAccum += delta;
+
+            float step = Mathf.Max(0.02f, handStepMeters);
+            while (handAccum >= step)
+            {
+                handAccum -= step;
+                StepGear(+1);
+            }
+            while (handAccum <= -step)
+            {
+                handAccum += step;
+                StepGear(-1);
+            }
+        }
+
         void HandleStick(float stickY)
         {
             bool fwd = stickY > stickThreshold;
@@ -179,7 +215,7 @@ namespace FullThrottleSun.Vehicle
 
         void HandleKeyboard()
         {
-            if (SettingsMenu.IsOpen)
+            if (SettingsMenu.IsOpen || KeyboardBindings.IsListening)
                 return;
             if (KeyboardBindings.WasPressedThisFrame(KeyboardAction.GearReverse))
                 SetGear(TireFrictionCar.AutoGear.Reverse);
@@ -220,6 +256,7 @@ namespace FullThrottleSun.Vehicle
                 {
                     VrHandClaim.Release(heldHand, this);
                     held = false;
+                    handAccum = 0f;
                 }
                 return;
             }
@@ -263,6 +300,8 @@ namespace FullThrottleSun.Vehicle
             heldHand = hand;
             pinLocalPosition = transform.InverseTransformPoint(worldPos);
             pinLocalRotation = Quaternion.Inverse(transform.rotation) * worldRot;
+            grabHandCarLocal = carRoot != null ? carRoot.InverseTransformPoint(worldPos) : worldPos;
+            handAccum = 0f;
             stickWasFwd = stickWasBack = false;
         }
 

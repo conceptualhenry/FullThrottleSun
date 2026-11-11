@@ -105,6 +105,14 @@ namespace FullThrottleSun.Vehicle
 
         void Update()
         {
+            // Flat-screen sanity check: H key always honks if audio is alive.
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard != null && keyboard.hKey.isPressed)
+            {
+                SetSounding(true, ControllerHand.Right);
+                return;
+            }
+
             bool want = false;
             var hand = ControllerHand.Left;
 
@@ -127,6 +135,8 @@ namespace FullThrottleSun.Vehicle
 
         bool CanUseVrHorn()
         {
+            if (viewCamera == null)
+                viewCamera = FindAnyObjectByType<CarFollowCamera>();
             return VirtualController.IsTrackedController
                    && viewCamera != null
                    && viewCamera.IsHeadTracked
@@ -135,9 +145,7 @@ namespace FullThrottleSun.Vehicle
 
         bool TryHornHand(ControllerHand hand)
         {
-            // Only a free hand (not gripping the wheel / stalks) can honk.
-            if (!VrHandClaim.IsFree(hand))
-                return false;
+            // Grip + hand on hub pad. Claim ownership doesn't matter — audio should still fire.
             if (!VrGrip.IsHeld(hand))
                 return false;
             if (!TryGetHandWorld(hand, out Vector3 pos, out _))
