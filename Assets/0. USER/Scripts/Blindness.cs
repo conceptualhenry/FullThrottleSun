@@ -17,6 +17,7 @@ public class Blindness : MonoBehaviour
     bool shrinkingOn = false;
     bool restartAllowed = true;
 
+    //START HERE TODO HENRY THIS IS WHAT YOU'RE WORKING ON https://discussions.unity.com/t/stopcoroutine-is-not-stopping-my-coroutines/134523
     Coroutine blindnessTimer;
 
     LayerMask sunLayerMask;
@@ -27,7 +28,7 @@ public class Blindness : MonoBehaviour
     {
         image = this.gameObject;
         sunLayerMask = LayerMask.GetMask("Sun");
-        StartCoroutine(blindnessWait());
+        blindnessTimer = StartCoroutine(blindnessWait());
     }
 
     // Update is called once per frame
@@ -38,18 +39,22 @@ public class Blindness : MonoBehaviour
 
         float newScale = 1;
 
+        //raycast and see if it hits anything on the sun layer (the sun)
         if (Physics.Raycast(cam.transform.position, cam.transform.TransformDirection(Vector3.forward), out hit, 20, sunLayerMask) && image.transform.localScale.y < sizeMax)
         {
+            //scale up if so
             newScale = image.transform.localScale.y + (increaseRate/100);
             image.transform.localScale = new Vector3(newScale * 2, newScale, 1);
             if (restartAllowed)
             {
-                StopCoroutine(blindnessWait());
+                StopCoroutine(blindnessTimer);
                 print("coroutine SHOULD have stoped");
                 restartAllowed = false;
                 StartCoroutine(restartTimer());
             }    
         }
+
+        //scale down otherwise (unless already at min size)
         else if (image.transform.localScale.y > sizeMin && shrinkingOn)
         {
             newScale = image.transform.localScale.y - (decreaseRate/100);
@@ -71,6 +76,6 @@ public class Blindness : MonoBehaviour
     {
         yield return new WaitForSeconds(.25f);
         restartAllowed = true;
-        //StartCoroutine(blindnessWait());
+        blindnessTimer = StartCoroutine(blindnessWait());
     }
 }
