@@ -6912,7 +6912,6 @@ GameObject:
   - component: {fileID: 1911942548}
   - component: {fileID: 1911942549}
   - component: {fileID: 1911942550}
-  - component: {fileID: 1911942551}
   m_Layer: 6
   m_Name: Main Camera (With sun)
   m_TagString: PlayerHead
@@ -7162,14 +7161,6 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.28
   m_Center: {x: 0, y: -0.02, z: 0.05}
---- !u!81 &1911942551
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1911942540}
-  m_Enabled: 1
 --- !u!1 &1993692840
 GameObject:
   m_ObjectHideFlags: 0
