@@ -80,9 +80,9 @@ public class StopSign : MonoBehaviour
         }
         else if(other.CompareTag("Player") && !carStopped)
         {
-            lostScreen.SetActive(true);
-            reasonText.text = "Failure to stop.";
-            Debug.Log("Too fast!");
+            //lostScreen.SetActive(true);
+            //reasonText.text = "Failure to stop.";
+            Debug.Log("violation detected!");
         }
     }
 }

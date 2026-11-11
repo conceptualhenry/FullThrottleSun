@@ -20,6 +20,12 @@ public class TimerManager : MonoBehaviour
     public float energyTimer;
     public float maxTime;
     private bool stopTimer = false;
+
+    [Header("Tempurature Settings")]
+    public float tempTimer;
+    private bool hotTemp;
+    private bool coldTemp;
+
     [SerializeField] private float duration;
     [SerializeField] private float maxIntensity;
 
