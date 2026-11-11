@@ -1,117 +1,127 @@
+using FullThrottleSun.Vehicle;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using TMPro;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
+/// <summary>
+/// Fail-check for turning without a signal. Blinkers themselves come from
+/// <see cref="CarLights"/> (Lever2 / <see cref="LightStalk"/>). Signal presence is
+/// latched for the current heading swing so CarLights auto-cancel still counts as indicated.
+/// </summary>
+[RequireComponent(typeof(CarLights))]
+[DefaultExecutionOrder(50)]
 public class TurningLanes : MonoBehaviour
 {
-    private float startingTurnPoint;
-    private bool trackingTurn = false;
-    private float totalTurnPoint = 0f;
-    private bool turnReached = false;
-
-    public Animator anim;
-
-    private bool rightBlinkerOn = false;
-    private bool leftBlinkerOn = false;
+    [Tooltip("Body yaw degrees (Unity Y, right +) past which a matching turn signal is required.")]
+    [SerializeField] float failYawDegrees = 20f;
+    [Tooltip("When |yaw| falls below this, the maneuver resets.")]
+    [SerializeField] float resetYawDegrees = 5f;
 
     public TextMeshProUGUI reasonText;
     public GameObject lostScreen;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    CarLights lights;
+    float startingYaw;
+    float yawDelta;
+    bool indicatedLeft;
+    bool indicatedRight;
+    bool turnOk;
+    bool failed;
+
+    void Awake()
+    {
+        lights = GetComponent<CarLights>();
+        startingYaw = transform.eulerAngles.y;
+    }
+
     void Start()
     {
-        anim = GetComponent<Animator>();
-        lostScreen.SetActive(false);
+        SetLostVisible(false);
     }
 
-    // Update is called once per frame
     void Update()
     {
-        float angleRotated = transform.eulerAngles.y;
-        totalTurnPoint = Mathf.DeltaAngle(startingTurnPoint, angleRotated);
+        float yaw = transform.eulerAngles.y;
+        yawDelta = Mathf.DeltaAngle(startingYaw, yaw);
 
-        if (Mathf.Abs(totalTurnPoint) < 2f)
+        // Drift baseline while nearly straight so small corrections don't accumulate.
+        if (Mathf.Abs(yawDelta) < 2f)
         {
-            startingTurnPoint = angleRotated;
-            totalTurnPoint = 0f;
+            startingYaw = yaw;
+            yawDelta = 0f;
         }
 
-        if(Keyboard.current.jKey.wasPressedThisFrame)
-        {
-            leftBlinkerOn = true;
-            rightBlinkerOn = false;
-            turnReached = false;
-            anim.Play("LeftBlinker");
+        LatchSignals();
 
-            startingTurnPoint = angleRotated;
-            totalTurnPoint = 0f;
-        }
-
-        if(Keyboard.current.lKey.wasPressedThisFrame)
-        {
-            rightBlinkerOn = true;
-            leftBlinkerOn = false;
-            turnReached = false;
-            anim.Play( "RightBlinker");
-
-            startingTurnPoint = angleRotated;
-            totalTurnPoint = 0f;
-        }
-
-
-        if(Keyboard.current.rKey.wasPressedThisFrame)
-        {
+        var keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
 
-        if(totalTurnPoint < -60f)
-        {
-            if(leftBlinkerOn)
-            {
-                turnReached = true;
-                Debug.Log("Good turn");
-            }
-            else if(!turnReached)
-            {
-                lostScreen.SetActive(true);
-                reasonText.text = "Failure to indicate left turn.";
-                Debug.Log("Illegal turn");
-            }
-        }
-        else if (totalTurnPoint > 60f)
-        {
-            if(rightBlinkerOn)
-            {
-                turnReached = true;
-                Debug.Log("Good turn");
-            }
-            else if (!turnReached)
-            {
-                lostScreen.SetActive(true);
-                reasonText.text = "Failure to indicate right turn.";
-                Debug.Log("Illegal turn");
-            }
-        }
+        if (!HasLostUi)
+            return;
 
-        if(turnReached && Mathf.Abs(totalTurnPoint) < 5f)
-        {
-            leftBlinkerOn = false;
-            rightBlinkerOn = false;
-            turnReached = false;
+        float fail = Mathf.Max(1f, failYawDegrees);
+        if (yawDelta < -fail)
+            EvaluateTurn(left: true);
+        else if (yawDelta > fail)
+            EvaluateTurn(left: false);
 
-            anim.Play("Idle");
-
-            startingTurnPoint = angleRotated;
-        }
-        else if(Mathf.Abs(Mathf.DeltaAngle(startingTurnPoint, angleRotated)) < 1.5f)
-        {
-            startingTurnPoint = angleRotated;
-        }
-
-        //Debug.Log($"total point:{totalTurnPoint}");
-        //Debug.Log($"starting point:{startingTurnPoint}");
+        if (Mathf.Abs(yawDelta) < Mathf.Max(0.5f, resetYawDegrees))
+            ResetManeuver(yaw);
     }
 
+    void LatchSignals()
+    {
+        if (lights == null)
+            return;
+        if (lights.Turn == CarLights.TurnSignal.Left)
+            indicatedLeft = true;
+        if (lights.Turn == CarLights.TurnSignal.Right)
+            indicatedRight = true;
+    }
+
+    void EvaluateTurn(bool left)
+    {
+        bool indicated = left ? indicatedLeft : indicatedRight;
+        if (indicated)
+        {
+            turnOk = true;
+            return;
+        }
+
+        if (turnOk || failed)
+            return;
+
+        failed = true;
+        ShowLost(left
+            ? "Failure to indicate left turn."
+            : "Failure to indicate right turn.");
+    }
+
+    void ResetManeuver(float yaw)
+    {
+        turnOk = false;
+        failed = false;
+        indicatedLeft = false;
+        indicatedRight = false;
+        startingYaw = yaw;
+        yawDelta = 0f;
+    }
+
+    bool HasLostUi => lostScreen;
+
+    void SetLostVisible(bool visible)
+    {
+        if (!HasLostUi)
+            return;
+        lostScreen.SetActive(visible);
+    }
+
+    void ShowLost(string reason)
+    {
+        SetLostVisible(true);
+        if (reasonText)
+            reasonText.text = reason;
+    }
 }

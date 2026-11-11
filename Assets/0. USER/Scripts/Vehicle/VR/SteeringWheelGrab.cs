@@ -7,41 +7,33 @@ namespace FullThrottleSun.Vehicle
     /// Lets tracked controllers (Meta Quest) grab the cockpit steering wheel. A hand touching the wheel's colliders grabs
     /// when the grip (side trigger) is pressed, stays pinned where it grabbed and turns the wheel:
     /// one hand by the controller's own rotation around the steering column, two hands by the angle of the line between
-    /// them. With no hand on it the wheel eases back to centre. In third person the hands are hidden and pressing the
-    /// grip takes the wheel straight away, wherever the hand is, holding it at a default spot on the rim.
-    /// Switching views keeps holding until the grip is let go. Needs the headset on.
-    /// Spawns the hands, and a ring of trigger colliders around the rim when none are assigned.
+    /// them. With no hand on it the wheel eases back to centre. Needs the headset on (first-person only).
+    /// Grab volume: assign scene-authored colliders under <c>Grab Zone</c> (editable in the Inspector).
     /// </summary>
     [DefaultExecutionOrder(-50)]
     [RequireComponent(typeof(TireFrictionCar))]
-    public class SteeringWheelGrab : MonoBehaviour
+    public class SteeringWheelGrab : MonoBehaviour, IVrHandPoseSource, IHandPinProvider
     {
         [SerializeField] CarFollowCamera viewCamera;
 
         [Header("Grab zone")]
-        [Tooltip("Colliders a hand must touch to grab. Empty = a ring of trigger capsules generated around the rim.")]
+        [Tooltip("Scene-authored grab colliders (usually Grab Zone / Rim * capsules). Assigned in the editor — never built at runtime.")]
         [SerializeField] Collider[] wheelColliders;
-        [Tooltip("Generated ring: rim radius (m), measured to the middle of the rim.")]
-        [Min(0.01f)] [SerializeField] float rimRadius = 0.18f;
-        [Tooltip("Generated ring: tube radius (m). Larger = easier to grab.")]
-        [Min(0.005f)] [SerializeField] float rimThickness = 0.035f;
-        [Range(6, 32)] [SerializeField] int rimSegments = 12;
+        [Tooltip("Fallback ring radius used only for DistanceToWheel when no collider closest-point is available.")]
+        [Min(0.01f)] [SerializeField] float rimRadius = 0.2f;
 
         [Header("Steering")]
         [Tooltip("Degrees per second the wheel turns back to centre with no hand on it.")]
         [Min(0f)] [SerializeField] float returnSpeed = 90f;
         [Tooltip("Two hands closer than this (m) give no usable line between them; the first hand steers alone.")]
         [Min(0.01f)] [SerializeField] float minHandSpacing = 0.1f;
-        [Tooltip("Where a third person grab holds the rim: degrees from the top, left hand to the left and right hand " +
-                 "to the right. 90 = quarter to three, 60 = ten to two.")]
-        [Range(0f, 180f)] [SerializeField] float defaultGripAngle = 90f;
 
         [Header("Hands")]
         [Tooltip("Optional hand models, posed like a fist around the controller grip. Empty = placeholder shapes.")]
         [SerializeField] GameObject leftHandModel;
         [SerializeField] GameObject rightHandModel;
         [Tooltip("Radius of each hand's grab collider (m).")]
-        [Min(0.01f)] [SerializeField] float handRadius = 0.05f;
+        [Min(0.01f)] [SerializeField] float handRadius = 0.065f;
 
         [Header("Debug (read only)")]
         [Tooltip("Steering wheel angle in degrees, right positive.")]
@@ -53,6 +45,7 @@ namespace FullThrottleSun.Vehicle
         public bool RightHolding => rightHolding;
 
         LightStalk lightStalk;
+        WiperStalk wiperStalk;
 
         public float DistanceToWheel(Vector3 worldPosition)
         {
@@ -112,8 +105,6 @@ namespace FullThrottleSun.Vehicle
         int grabCounter;
         int calibrationVersion;
         bool firstPerson;
-        // Middle of the rim, steering wheel local space.
-        Vector3 rimCenter;
 
         void Awake()
         {
@@ -129,34 +120,38 @@ namespace FullThrottleSun.Vehicle
             if (viewCamera == null)
                 viewCamera = FindAnyObjectByType<CarFollowCamera>();
             lightStalk = GetComponentInChildren<LightStalk>(true) ?? FindAnyObjectByType<LightStalk>();
-            var mesh = wheel.GetComponent<MeshFilter>();
-            if (mesh != null && mesh.sharedMesh != null)
-                rimCenter = new Vector3(0f, 0f, mesh.sharedMesh.bounds.center.z);
-            if (wheelColliders == null || wheelColliders.Length == 0)
-                BuildRimColliders();
+            wiperStalk = GetComponentInChildren<WiperStalk>(true) ?? FindAnyObjectByType<WiperStalk>();
+            ResolveWheelColliders();
 
             for (int i = 0; i < hands.Length; i++)
             {
                 var hand = (ControllerHand)i;
                 var go = new GameObject(hand == ControllerHand.Left ? "[VR Hand L]" : "[VR Hand R]");
                 hands[i].view = go.AddComponent<VRHand>();
-                hands[i].view.Init(this, hand, hand == ControllerHand.Left ? leftHandModel : rightHandModel, handRadius);
+                hands[i].view.Init(this, hand, hand == ControllerHand.Left ? leftHandModel : rightHandModel, handRadius, transform);
             }
+
+            HandPinHub.Register(this);
         }
 
         void OnDisable()
         {
-            foreach (var hand in hands)
+            for (int i = 0; i < hands.Length; i++)
             {
-                hand.holding = false;
-                hand.tracked = false;
+                if (hands[i].holding)
+                    VrHandClaim.Release((ControllerHand)i, this);
+                hands[i].holding = false;
+                hands[i].tracked = false;
             }
+            VrHandClaim.ReleaseAll(this);
             if (car != null)
                 car.SetWheelInput(0f, false);
         }
 
         void OnDestroy()
         {
+            HandPinHub.Unregister(this);
+            VrHandClaim.ReleaseAll(this);
             foreach (var hand in hands)
                 if (hand.view != null)
                     Destroy(hand.view.gameObject);
@@ -165,14 +160,9 @@ namespace FullThrottleSun.Vehicle
         void Update()
         {
             bool active = viewCamera != null && VirtualController.IsTrackedController && viewCamera.IsHeadTracked;
+            firstPerson = active && viewCamera.IsFirstPerson;
 
-            // Switching views keeps the grip, but the controller pose mapping changes with it (first person adds the
-            // stick look), so that frame's motion isn't steering.
-            bool nowFirstPerson = active && viewCamera.IsFirstPerson;
-            bool viewChanged = nowFirstPerson != firstPerson;
-            firstPerson = nowFirstPerson;
-
-            bool recentered = viewChanged || (viewCamera != null && viewCamera.CalibrationVersion != calibrationVersion);
+            bool recentered = viewCamera != null && viewCamera.CalibrationVersion != calibrationVersion;
             if (viewCamera != null)
                 calibrationVersion = viewCamera.CalibrationVersion;
 
@@ -230,39 +220,50 @@ namespace FullThrottleSun.Vehicle
                 h.previousRotation = h.rotation;
             }
 
-            // Stalk wins while that hand is on Lever2.
-            if (lightStalk != null && lightStalk.IsHolding(hand))
+            // Another system (stalk / HandGrabbable) owns this hand.
+            if (!VrHandClaim.IsFree(hand) && !VrHandClaim.IsOwnedBy(hand, this))
             {
-                h.holding = false;
+                if (h.holding)
+                {
+                    h.holding = false;
+                    VrHandClaim.Release(hand, this);
+                }
                 return;
             }
 
             if (h.holding)
             {
-                if (!h.tracked || !VirtualController.GetButton(ControllerButton.Grip, hand))
+                // While gripping the rim, stay locked — never yield to the horn mid-turn.
+                if (!h.tracked || !VrGrip.IsHeld(hand))
+                {
                     h.holding = false;
+                    VrHandClaim.Release(hand, this);
+                }
             }
-            else if (h.tracked && VirtualController.GetButtonDown(ControllerButton.Grip, hand))
+            else if (h.tracked && firstPerson && VrGrip.IsDown(hand) && TouchesWheel(h))
             {
-                if (!firstPerson)
-                {
-                    // Third person: still prefer stalk if it's clearly closer.
-                    Vector3 world = transform.TransformPoint(h.position);
-                    if (lightStalk != null && lightStalk.Touches(world)
-                        && lightStalk.DistanceTo(world) < DistanceToWheel(world) - 0.01f)
-                        return;
-                    GrabAtDefault(h, hand);
-                }
-                else if (TouchesWheel(h))
-                {
-                    Vector3 world = transform.TransformPoint(h.position);
-                    Quaternion worldRot = transform.rotation * h.rotation;
-                    bool stalkTouch = lightStalk != null && lightStalk.Touches(world, worldRot, h.view != null ? h.view.GrabCollider : null);
-                    if (stalkTouch && lightStalk.DistanceTo(world) < DistanceToWheel(world) - 0.01f)
-                        return; // LightStalk will claim this grip.
-                    Grab(h);
-                }
+                Vector3 world = transform.TransformPoint(h.position);
+                Quaternion worldRot = transform.rotation * h.rotation;
+                var handCol = h.view != null ? h.view.GrabCollider : null;
+                if (PreferCloserOverWheel(hand, world, handCol, worldRot))
+                    return;
+                Grab(h, hand);
             }
+        }
+
+        bool PreferCloserOverWheel(
+            ControllerHand hand, Vector3 world, SphereCollider handCol, Quaternion worldRot = default)
+        {
+            float wheelDist = DistanceToWheel(world);
+            if (lightStalk != null && lightStalk.Touches(world, worldRot, handCol)
+                && lightStalk.DistanceTo(world) < wheelDist - 0.01f)
+                return true;
+            if (wiperStalk != null && wiperStalk.Touches(world, worldRot, handCol)
+                && wiperStalk.DistanceTo(world) < wheelDist - 0.01f)
+                return true;
+            if (VrGrabBroker.PreferFreeOverCockpit(hand, world, worldRot, handCol, wheelDist))
+                return true;
+            return false;
         }
 
         bool TouchesWheel(Hand h)
@@ -271,46 +272,17 @@ namespace FullThrottleSun.Vehicle
             var handCollider = h.view.GrabCollider;
             Vector3 position = transform.TransformPoint(h.position);
             Quaternion rotation = transform.rotation * h.rotation;
-            foreach (var c in wheelColliders)
-            {
-                if (c == null || !c.enabled || !c.gameObject.activeInHierarchy)
-                    continue;
-                if (Physics.ComputePenetration(handCollider, position, rotation,
-                        c, c.transform.position, c.transform.rotation, out _, out _))
-                    return true;
-            }
-            return false;
+            return GrabOverlap.TouchesAny(handCollider, position, rotation, wheelColliders);
         }
 
-        void Grab(Hand h)
+        void Grab(Hand h, ControllerHand hand)
         {
+            if (!VrHandClaim.TryClaim(hand, this))
+                return;
             h.holding = true;
             h.grabOrder = ++grabCounter;
             h.grabPosition = wheel.InverseTransformPoint(transform.TransformPoint(h.position));
             h.grabRotation = Quaternion.Inverse(wheel.rotation) * (transform.rotation * h.rotation);
-        }
-
-        /// <summary>
-        /// Holds the rim at defaultGripAngle on the hand's side, measured upright however the wheel is turned, with the
-        /// fist wrapped around the rim and the palm towards the hub.
-        /// </summary>
-        void GrabAtDefault(Hand h, ControllerHand hand)
-        {
-            h.holding = true;
-            h.grabOrder = ++grabCounter;
-
-            float side = hand == ControllerHand.Left ? -1f : 1f;
-            Vector3 axis = wheel.forward;
-            Vector3 up = Vector3.ProjectOnPlane(transform.up, axis).normalized;
-            Vector3 right = Vector3.Cross(up, axis);
-            float angle = defaultGripAngle * Mathf.Deg2Rad;
-            Vector3 radial = up * Mathf.Cos(angle) + right * (side * Mathf.Sin(angle));
-            // Tangent along the rim, pointing up on either side; the grip pose's +Z runs through the fist.
-            Vector3 along = -side * Vector3.Cross(radial, axis);
-
-            Vector3 position = wheel.TransformPoint(rimCenter) + radial * (rimRadius * wheel.lossyScale.x);
-            h.grabPosition = wheel.InverseTransformPoint(position);
-            h.grabRotation = Quaternion.Inverse(wheel.rotation) * Quaternion.LookRotation(along, -axis);
         }
 
         /// <summary>This frame's wheel rotation around the steering column (degrees, Quaternion.AngleAxis convention).</summary>
@@ -339,31 +311,41 @@ namespace FullThrottleSun.Vehicle
             return Mathf.DeltaAngle(0f, angle * Mathf.Rad2Deg);
         }
 
-        void BuildRimColliders()
+        /// <summary>
+        /// Uses inspector-assigned colliders, or finds an existing scene <c>Grab Zone</c>. Never creates colliders.
+        /// </summary>
+        void ResolveWheelColliders()
         {
-            var root = new GameObject("Grab Zone").transform;
-            root.SetParent(wheel, false);
-            root.localPosition = rimCenter;
-
-            int ignoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
-            root.gameObject.layer = ignoreRaycast;
-            float chord = 2f * rimRadius * Mathf.Sin(Mathf.PI / rimSegments);
-            wheelColliders = new Collider[rimSegments];
-            for (int i = 0; i < rimSegments; i++)
+            if (wheelColliders != null && wheelColliders.Length > 0)
             {
-                var segment = new GameObject("Rim " + i);
-                segment.layer = ignoreRaycast;
-                segment.transform.SetParent(root, false);
-                // Each capsule lies along its local Y, tangent to the rim.
-                segment.transform.localRotation = Quaternion.Euler(0f, 0f, 360f * i / rimSegments);
-                segment.transform.localPosition = segment.transform.localRotation * Vector3.right * rimRadius;
-                var capsule = segment.AddComponent<CapsuleCollider>();
-                capsule.isTrigger = true;
-                capsule.direction = 1;
-                capsule.radius = rimThickness;
-                capsule.height = chord + 2f * rimThickness;
-                wheelColliders[i] = capsule;
+                bool any = false;
+                for (int i = 0; i < wheelColliders.Length; i++)
+                {
+                    if (wheelColliders[i] != null)
+                    {
+                        any = true;
+                        break;
+                    }
+                }
+                if (any)
+                    return;
             }
+
+            Transform existing = wheel != null ? wheel.Find("Grab Zone") : null;
+            if (existing != null)
+            {
+                var found = existing.GetComponentsInChildren<Collider>(true);
+                if (found != null && found.Length > 0)
+                {
+                    wheelColliders = found;
+                    return;
+                }
+            }
+
+            Debug.LogWarning(
+                "[SteeringWheelGrab] No grab colliders assigned. Add CapsuleColliders under Grab Zone in the scene.",
+                this);
+            wheelColliders = System.Array.Empty<Collider>();
         }
     }
 }

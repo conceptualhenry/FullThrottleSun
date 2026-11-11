@@ -1,6 +1,5 @@
 using System.Collections;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -15,23 +14,24 @@ public class SleepTimer : MonoBehaviour
     public TextMeshProUGUI reasonText;
     public GameObject lostScreen;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        energySlider.maxValue = energyTimer;
-        energySlider.value = energyTimer;
+        if (energySlider != null)
+        {
+            energySlider.maxValue = energyTimer;
+            energySlider.value = energyTimer;
+        }
         StartCoroutine(StartTimerClock());
 
-        lostScreen.SetActive(false);
+        if (lostScreen)
+            lostScreen.SetActive(false);
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (!stopTimer && Keyboard.current.shiftKey.wasPressedThisFrame)
-        {
+        var keyboard = Keyboard.current;
+        if (!stopTimer && keyboard != null && keyboard.shiftKey.wasPressedThisFrame)
             RestartTimer();
-        }
     }
 
     IEnumerator StartTimerClock()
@@ -44,15 +44,15 @@ public class SleepTimer : MonoBehaviour
             if (energyTimer <= 0)
             {
                 stopTimer = true;
-                lostScreen.SetActive(true);
-                reasonText.text = "Falling asleep at the wheel";
+                if (lostScreen)
+                    lostScreen.SetActive(true);
+                if (reasonText)
+                    reasonText.text = "Falling asleep at the wheel";
                 yield break;
             }
 
-            if (stopTimer == false)
-            {
+            if (stopTimer == false && energySlider != null)
                 energySlider.value = energyTimer;
-            }
 
             yield return null;
         }
@@ -61,6 +61,16 @@ public class SleepTimer : MonoBehaviour
     public void RestartTimer()
     {
         energyTimer = maxTime;
-        energySlider.value = energyTimer;
+        if (energySlider != null)
+            energySlider.value = energyTimer;
+
+        // Drinking can revive after the timer already hit zero.
+        if (stopTimer)
+        {
+            stopTimer = false;
+            if (lostScreen)
+                lostScreen.SetActive(false);
+            StartCoroutine(StartTimerClock());
+        }
     }
 }

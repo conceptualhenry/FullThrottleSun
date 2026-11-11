@@ -4,21 +4,21 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Light stalk. Third person: left stick always controls lights (no grab).
-    /// First person: grab Lever2, then that hand's stick —
+    /// Lever2 stalk for lights only. Grab Lever2, then that hand's stick —
     /// forward/back = high/low beam (hold to flash-toggle), right/left = turn signals.
+    /// Wipers are on Lever1 / <see cref="WiperStalk"/>.
     /// </summary>
-    [DefaultExecutionOrder(-40)]
-    public class LightStalk : MonoBehaviour
+    [DefaultExecutionOrder(-45)]
+    public class LightStalk : MonoBehaviour, IHandPinProvider
     {
         [SerializeField] CarLights lights;
         [SerializeField] CarFollowCamera viewCamera;
         [SerializeField] SteeringWheelGrab wheelGrab;
+        [SerializeField] WiperStalk wiperStalk;
         [SerializeField] Transform carRoot;
 
         [Header("Grab")]
-        [SerializeField] float touchRadius = 0.08f;
-        [SerializeField] float thirdPersonGrabDistance = 0.35f;
+        [SerializeField] float touchRadius = 0.055f;
 
         [Header("Stick")]
         [Tooltip("Deadzone for turn (X) and beam (Y) flicks.")]
@@ -67,8 +67,7 @@ namespace FullThrottleSun.Vehicle
 
         public bool Touches(Vector3 worldPosition, Quaternion worldRotation, SphereCollider handCollider)
         {
-            bool firstPerson = viewCamera != null && viewCamera.IsFirstPerson;
-            float maxDist = firstPerson ? touchRadius : thirdPersonGrabDistance;
+            float maxDist = touchRadius;
             if (leverCollider != null)
             {
                 if ((leverCollider.ClosestPoint(worldPosition) - worldPosition).sqrMagnitude <= maxDist * maxDist)
@@ -106,43 +105,31 @@ namespace FullThrottleSun.Vehicle
             if (wheelGrab == null)
                 wheelGrab = GetComponentInParent<SteeringWheelGrab>()
                             ?? FindAnyObjectByType<SteeringWheelGrab>();
+            if (wiperStalk == null)
+                wiperStalk = FindAnyObjectByType<WiperStalk>();
 
             restLocalRotation = transform.localRotation;
-            EnsureCollider();
+            ResolveCollider();
+            HandPinHub.Register(this);
         }
 
-        void EnsureCollider()
+        void ResolveCollider()
         {
             leverCollider = GetComponent<Collider>();
-            if (leverCollider != null)
-            {
-                leverCollider.isTrigger = true;
-                return;
-            }
-
-            var box = gameObject.AddComponent<BoxCollider>();
-            var mf = GetComponent<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-            {
-                box.center = mf.sharedMesh.bounds.center;
-                Vector3 size = mf.sharedMesh.bounds.size;
-                size = Vector3.Max(size, Vector3.one * 0.02f) * 1.5f;
-                box.size = size;
-            }
-            else
-            {
-                box.size = new Vector3(0.12f, 0.04f, 0.06f);
-            }
-            box.isTrigger = true;
-            leverCollider = box;
+            if (leverCollider == null)
+                Debug.LogWarning("[LightStalk] No Collider on Lever2 — add one in the editor (trigger recommended).", this);
         }
 
         void OnDisable()
         {
+            if (held)
+                VrHandClaim.Release(heldHand, this);
             held = false;
             IsHeld = false;
             if (Active == this)
                 Active = null;
+            HandPinHub.Unregister(this);
+            VrHandClaim.ReleaseAll(this);
         }
 
         void Update()
@@ -150,21 +137,16 @@ namespace FullThrottleSun.Vehicle
             if (lights == null)
                 return;
 
-            bool thirdPerson = viewCamera == null || !viewCamera.IsFirstPerson;
-
             float turnPose = 0f;
             float beamPose = 0f;
 
-            if (thirdPerson)
-            {
-                // Free left stick — no grab. Drop any first-person grip.
-                if (held)
-                    held = false;
-                IsHeld = false;
-                if (Active == this)
-                    Active = null;
+            UpdateGrab();
+            IsHeld = held;
+            Active = held ? this : (Active == this ? null : Active);
 
-                Vector2 stick = VirtualController.GetThumbstick(ControllerHand.Left);
+            if (held)
+            {
+                Vector2 stick = VirtualController.GetThumbstick(heldHand);
                 HandleTurn(stick.x);
                 HandleBeam(stick.y);
                 turnPose = Mathf.Abs(stick.x) > stickThreshold ? Mathf.Sign(stick.x) : 0f;
@@ -172,25 +154,10 @@ namespace FullThrottleSun.Vehicle
             }
             else
             {
-                UpdateGrab();
-                IsHeld = held;
-                Active = held ? this : (Active == this ? null : Active);
-
-                if (held)
-                {
-                    Vector2 stick = VirtualController.GetThumbstick(heldHand);
-                    HandleTurn(stick.x);
-                    HandleBeam(stick.y);
-                    turnPose = Mathf.Abs(stick.x) > stickThreshold ? Mathf.Sign(stick.x) : 0f;
-                    beamPose = Mathf.Abs(stick.y) > stickThreshold ? Mathf.Sign(stick.y) : 0f;
-                }
-                else
-                {
-                    stickWasUp = stickWasDown = false;
-                    beamWasFwd = beamWasBack = false;
-                    beamHoldTimer = -1f;
-                    beamHoldDir = 0;
-                }
+                stickWasUp = stickWasDown = false;
+                beamWasFwd = beamWasBack = false;
+                beamHoldTimer = -1f;
+                beamHoldDir = 0;
             }
 
             Quaternion target = restLocalRotation
@@ -209,9 +176,12 @@ namespace FullThrottleSun.Vehicle
 
             if (held)
             {
-                if (!VirtualController.GetButton(ControllerButton.Grip, heldHand)
+                if (!VrGrip.IsHeld(heldHand)
                     || !VirtualController.GetState(heldHand).isTracked)
+                {
+                    VrHandClaim.Release(heldHand, this);
                     held = false;
+                }
                 return;
             }
 
@@ -222,7 +192,9 @@ namespace FullThrottleSun.Vehicle
 
         void TryGrab(ControllerHand hand)
         {
-            if (!VirtualController.GetButtonDown(ControllerButton.Grip, hand))
+            if (!VrGrip.IsDown(hand))
+                return;
+            if (!VrHandClaim.IsFree(hand) && !VrHandClaim.IsOwnedBy(hand, this))
                 return;
             if (wheelGrab != null
                 && ((hand == ControllerHand.Left && wheelGrab.LeftHolding)
@@ -232,12 +204,8 @@ namespace FullThrottleSun.Vehicle
                 return;
 
             SphereCollider handCol = null;
-            foreach (var vrHand in FindObjectsByType<VRHand>())
-                if (vrHand.GrabCollider != null)
-                {
-                    handCol = vrHand.GrabCollider;
-                    break;
-                }
+            if (VrGrip.TryGetHand(hand, out VRHand vrHand))
+                handCol = vrHand.GrabCollider;
 
             if (!Touches(worldPos, worldRot, handCol))
                 return;
@@ -248,6 +216,18 @@ namespace FullThrottleSun.Vehicle
             bool wheelTouch = wheelGrab != null && handCol != null
                               && wheelGrab.TouchesWheelWorld(worldPos, worldRot, handCol);
             if (wheelTouch && wheelDist + 0.01f < leverDist)
+                return;
+
+            // Lever1 (wipers) often overlaps — only yield if that stalk is clearly closer.
+            if (wiperStalk != null
+                && wiperStalk.Touches(worldPos, worldRot, handCol)
+                && wiperStalk.DistanceTo(worldPos) + 0.025f < leverDist)
+                return;
+
+            if (VrGrabBroker.PreferFreeOverCockpit(hand, worldPos, worldRot, handCol, leverDist))
+                return;
+
+            if (!VrHandClaim.TryClaim(hand, this))
                 return;
 
             held = true;

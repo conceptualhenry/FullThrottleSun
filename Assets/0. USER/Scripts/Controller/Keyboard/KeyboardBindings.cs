@@ -36,11 +36,14 @@ namespace FullThrottleSun.Controller
             { KeyboardAction.LookRight, Key.RightArrow },
             { KeyboardAction.LookUp, Key.UpArrow },
             { KeyboardAction.LookDown, Key.DownArrow },
-            { KeyboardAction.CameraSwitch, Key.C },
             { KeyboardAction.LightLeft, Key.J },
             { KeyboardAction.LightRight, Key.L },
             { KeyboardAction.LightUp, Key.I },
             { KeyboardAction.LightDown, Key.K },
+            { KeyboardAction.Wipers, Key.V },
+            { KeyboardAction.GearReverse, Key.Digit1 },
+            { KeyboardAction.GearNeutral, Key.Digit2 },
+            { KeyboardAction.GearDrive, Key.Digit3 },
             { KeyboardAction.Menu, Key.Escape },
             { KeyboardAction.Secondary, Key.LeftShift },
             { KeyboardAction.GripLeft, Key.Q },
@@ -60,11 +63,14 @@ namespace FullThrottleSun.Controller
                 case KeyboardAction.LookRight: return "Look Right";
                 case KeyboardAction.LookUp: return "Look Up";
                 case KeyboardAction.LookDown: return "Look Down";
-                case KeyboardAction.CameraSwitch: return "Camera";
                 case KeyboardAction.LightLeft: return "Light Left";
                 case KeyboardAction.LightRight: return "Light Right";
                 case KeyboardAction.LightUp: return "Light Up";
                 case KeyboardAction.LightDown: return "Light Down";
+                case KeyboardAction.Wipers: return "Wipers";
+                case KeyboardAction.GearReverse: return "Gear R";
+                case KeyboardAction.GearNeutral: return "Gear N";
+                case KeyboardAction.GearDrive: return "Gear D";
                 case KeyboardAction.Menu: return "Menu";
                 case KeyboardAction.Secondary: return "Secondary";
                 case KeyboardAction.GripLeft: return "Grip L";

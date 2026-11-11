@@ -19,22 +19,18 @@ namespace FullThrottleSun.Controller
                 KeyboardAction.Brake,
                 KeyboardAction.SteerLeft,
                 KeyboardAction.SteerRight,
-                KeyboardAction.Handbrake
-            }),
-            ("Camera", new[]
-            {
-                KeyboardAction.LookLeft,
-                KeyboardAction.LookRight,
-                KeyboardAction.LookUp,
-                KeyboardAction.LookDown,
-                KeyboardAction.CameraSwitch
+                KeyboardAction.Handbrake,
+                KeyboardAction.GearReverse,
+                KeyboardAction.GearNeutral,
+                KeyboardAction.GearDrive
             }),
             ("Lights", new[]
             {
                 KeyboardAction.LightLeft,
                 KeyboardAction.LightRight,
                 KeyboardAction.LightUp,
-                KeyboardAction.LightDown
+                KeyboardAction.LightDown,
+                KeyboardAction.Wipers
             }),
             ("System", new[]
             {
