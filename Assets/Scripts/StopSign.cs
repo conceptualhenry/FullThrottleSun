@@ -13,6 +13,8 @@ public class StopSign : MonoBehaviour
     public TextMeshProUGUI reasonText;
     public GameObject lostScreen;
 
+    public ViolationTracker violationTracker;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -82,6 +84,7 @@ public class StopSign : MonoBehaviour
         {
             //lostScreen.SetActive(true);
             //reasonText.text = "Failure to stop.";
+            violationTracker.currentViolations++;
             Debug.Log("violation detected!");
         }
     }
