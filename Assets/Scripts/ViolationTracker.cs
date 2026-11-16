@@ -17,4 +17,9 @@ public class ViolationTracker : MonoBehaviour
     {
         Debug.Log($"Violations: {currentViolations}");
     }
+
+    /*
+     * grab the MPH from the carUI manager, it will be attacted to car.
+     * 
+     */
 }
