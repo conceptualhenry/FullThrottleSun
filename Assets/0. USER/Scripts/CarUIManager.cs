@@ -30,7 +30,10 @@ public class CarUIManager : MonoBehaviour
         mph = car.GetComponent<Rigidbody>().linearVelocity.magnitude * mphScalar;
         float mps = mph / 3600;
         milesDriven += mps;
-        if (milesDisplay.enabled) milesDisplay.text = milesDriven.ToString() +" miles driven";
+        if (milesDisplay.enabled)
+        {
+            milesDisplay.text = milesDriven.ToString("F2") + " miles driven";
+        }
 
     }
 }
