@@ -979,6 +979,7 @@ GameObject:
   - component: {fileID: 434028680}
   - component: {fileID: 434028679}
   - component: {fileID: 434028678}
+  - component: {fileID: 434028685}
   m_Layer: 6
   m_Name: Main Camera (With sun)
   m_TagString: MainCamera
@@ -1134,7 +1135,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 434028677}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &434028683
 Camera:
   m_ObjectHideFlags: 0
@@ -1201,6 +1202,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &434028685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 434028677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86c6556701af9e04380698b89f691b6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMODUnity::FMODUnity.StudioListener
+  nonRigidbodyVelocity: 0
+  attenuationObject: {fileID: 0}
 --- !u!1 &466472136
 GameObject:
   m_ObjectHideFlags: 0
@@ -1344,6 +1359,66 @@ PrefabInstance:
     - target: {fileID: 4423259629677996412, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
       propertyPath: m_Name
       value: Radio
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Path
+      value: event:/RadioTransition
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Path
+      value: event:/TheDriveMusic
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Path
+      value: event:/TheDriveVoice
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data1
+      value: 154608639
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data2
+      value: 1077732784
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data3
+      value: 834575286
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data4
+      value: 1805792936
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data1
+      value: -622746478
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data2
+      value: 1191434584
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data3
+      value: -809433932
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data4
+      value: -1192715474
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data1
+      value: -760930841
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data2
+      value: 1191990469
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data3
+      value: -336856676
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data4
+      value: -8046202
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
