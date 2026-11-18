@@ -3550,6 +3550,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MilesTracker
   milesDriven: 0
   mph: 0
+  milesDisplay: {fileID: 0}
 --- !u!1 &1856975606
 GameObject:
   m_ObjectHideFlags: 0
