@@ -708,7 +708,10 @@ MonoBehaviour:
   mirrorCam: {fileID: 0}
   resolution: 256
   convexStrength: 0.55
+  flipHorizontal: 1
+  flipVertical: 0
   frameInterval: 1
+  autoAimOwnedCamera: 1
 --- !u!23 &266481749
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -976,6 +979,7 @@ GameObject:
   - component: {fileID: 434028680}
   - component: {fileID: 434028679}
   - component: {fileID: 434028678}
+  - component: {fileID: 434028685}
   m_Layer: 6
   m_Name: Main Camera (With sun)
   m_TagString: MainCamera
@@ -996,27 +1000,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FullThrottleSun.Vehicle.CarFollowCamera
   target: {fileID: 1814939036}
-  view: 1
-  switchButton: 2
-  switchHand: 1
-  lookHand: 1
-  distance: 7
-  height: 2.8
-  lookOffset: {x: 0, y: 1.2, z: 0}
-  rotationDamping: 4
-  heightDamping: 6
-  orbitPitchRange: {x: -15, y: 45}
-  thirdPersonFov: 70
   driverEye: {fileID: 2016001183}
-  headYawLimit: 120
-  headPitchRange: {x: -40, y: 50}
   firstPersonFov: 80
   firstPersonNearClip: 0.05
-  lookSpeed: 180
-  invertLookY: 0
-  autoRecenter: 1
-  recenterDelay: 0.3
-  recenterSpeed: 4
   useHeadTracking: 1
   headRecenterButton: 3
   headRecenterHand: 0
@@ -1149,7 +1135,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 434028677}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &434028683
 Camera:
   m_ObjectHideFlags: 0
@@ -1216,6 +1202,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &434028685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 434028677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86c6556701af9e04380698b89f691b6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMODUnity::FMODUnity.StudioListener
+  nonRigidbodyVelocity: 0
+  attenuationObject: {fileID: 0}
 --- !u!1 &466472136
 GameObject:
   m_ObjectHideFlags: 0
@@ -1359,6 +1359,66 @@ PrefabInstance:
     - target: {fileID: 4423259629677996412, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
       propertyPath: m_Name
       value: Radio
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Path
+      value: event:/RadioTransition
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Path
+      value: event:/TheDriveMusic
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Path
+      value: event:/TheDriveVoice
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data1
+      value: 154608639
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data2
+      value: 1077732784
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data3
+      value: 834575286
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Zap.Guid.Data4
+      value: 1805792936
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data1
+      value: -622746478
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data2
+      value: 1191434584
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data3
+      value: -809433932
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Music.Guid.Data4
+      value: -1192715474
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data1
+      value: -760930841
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data2
+      value: 1191990469
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data3
+      value: -336856676
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798013549422975156, guid: d3a39a2d932d5f049960cefb859a7da5, type: 3}
+      propertyPath: Voice.Guid.Data4
+      value: -8046202
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
@@ -1609,7 +1669,10 @@ MonoBehaviour:
   mirrorCam: {fileID: 0}
   resolution: 256
   convexStrength: 0.55
+  flipHorizontal: 1
+  flipVertical: 0
   frameInterval: 1
+  autoAimOwnedCamera: 1
 --- !u!23 &879024028
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1912,9 +1975,9 @@ MonoBehaviour:
   lights: {fileID: 1814939030}
   viewCamera: {fileID: 0}
   wheelGrab: {fileID: 1814939031}
+  wiperStalk: {fileID: 0}
   carRoot: {fileID: 1814939036}
   touchRadius: 0.080000006
-  thirdPersonGrabDistance: 0.35
   stickThreshold: 0.65
   beamPushMeters: 0.040000003
   beamHoldDelay: 0.2
@@ -3175,7 +3238,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 165e96ec93b4f2c4bb1cdb95823d5e4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TurningLanes
-  anim: {fileID: 1814939028}
+  failYawDegrees: 20
+  resetYawDegrees: 5
   reasonText: {fileID: 0}
   lostScreen: {fileID: 0}
 --- !u!114 &1814939030
@@ -3248,11 +3312,8 @@ MonoBehaviour:
   viewCamera: {fileID: 0}
   wheelColliders: []
   rimRadius: 0.18
-  rimThickness: 0.035
-  rimSegments: 12
   returnSpeed: 90
   minHandSpacing: 0.10000001
-  defaultGripAngle: 90
   leftHandModel: {fileID: 0}
   rightHandModel: {fileID: 0}
   handRadius: 0.050000004
@@ -3326,6 +3387,7 @@ MonoBehaviour:
   maxSpeed: 40
   reverseTorqueScale: 0.5
   maxReverseSpeed: 8
+  autoGear: 1
   brakeTorque: 1200
   handbrakeTorque: 3000
   antiLockBrakes: 1
@@ -3693,7 +3755,10 @@ MonoBehaviour:
   mirrorCam: {fileID: 0}
   resolution: 256
   convexStrength: 0.55
+  flipHorizontal: 1
+  flipVertical: 0
   frameInterval: 1
+  autoAimOwnedCamera: 1
 --- !u!23 &1933777040
 MeshRenderer:
   m_ObjectHideFlags: 0
