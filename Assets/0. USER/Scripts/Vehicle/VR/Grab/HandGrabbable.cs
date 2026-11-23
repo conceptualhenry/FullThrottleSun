@@ -147,10 +147,30 @@ namespace FullThrottleSun.Vehicle
         {
             if (!VrGrabBroker.ShouldFreeGrabBegin(this, hand))
                 return;
+            BeginGrab(hand, requireClaim: true);
+        }
+
+        /// <summary>
+        /// Force-grab for hand-off (e.g. Rubik's cube transfers hold to the other hand).
+        /// Skips broker arbitration; still requires a free claim unless already owned by us.
+        /// </summary>
+        public bool TryForceGrab(ControllerHand hand)
+        {
+            if (held && heldHand == hand)
+                return true;
+            if (held)
+                ReleaseInternal(dropPhysics: false);
+            return BeginGrab(hand, requireClaim: true);
+        }
+
+        bool BeginGrab(ControllerHand hand, bool requireClaim)
+        {
             if (!VrGrip.TryGetWorldPose(hand, out Vector3 pos, out Quaternion rot))
-                return;
-            if (!VrHandClaim.TryClaim(hand, this))
-                return;
+                return false;
+            if (requireClaim && !VrHandClaim.TryClaim(hand, this) && !VrHandClaim.IsOwnedBy(hand, this))
+                return false;
+            if (!VrHandClaim.IsOwnedBy(hand, this))
+                VrHandClaim.TryClaim(hand, this);
 
             held = true;
             heldHand = hand;
@@ -177,9 +197,12 @@ namespace FullThrottleSun.Vehicle
             throwVelocity = Vector3.zero;
             throwAngularVelocity = Vector3.zero;
             hasMotionSample = false;
+            return true;
         }
 
-        void Release()
+        void Release() => ReleaseInternal(dropPhysics: true);
+
+        void ReleaseInternal(bool dropPhysics)
         {
             if (!held)
                 return;
@@ -188,7 +211,7 @@ namespace FullThrottleSun.Vehicle
             held = false;
             VrHandClaim.Release(hand, this);
 
-            if (!physicsOnRelease || rb == null)
+            if (!dropPhysics || !physicsOnRelease || rb == null)
                 return;
 
             if (transform.parent != null)

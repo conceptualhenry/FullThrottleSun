@@ -3,18 +3,21 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Builds a real 3×3×3 cubie Rubik's cube under <c>Cubies</c> (not sticker quads).
-    /// Physics / grab stay on the root; this only creates the visual pieces.
+    /// Builds a real 3×3×3 of separate cubie blocks under <c>Cubies</c>.
+    /// Each cubie is its own transform + editable BoxCollider so layers can be twisted.
+    /// Whole-cube grab/physics stay on the root.
     /// </summary>
     [ExecuteAlways]
     public class RubiksCubeBuilder : MonoBehaviour
     {
         [SerializeField] float size = 0.055f;
-        [SerializeField] float gap = 0.0015f;
+        [SerializeField] float gap = 0.0035f;
         [SerializeField] bool rebuildOnValidate;
 
         public float Size => size;
+        public float Gap => gap;
         public float CubieSize => (size - gap * 2f) / 3f;
+        public float Step => CubieSize + gap;
 
         static readonly Color Black = new Color(0.07f, 0.07f, 0.07f);
         static readonly Color White = new Color(0.95f, 0.95f, 0.95f);
@@ -39,7 +42,6 @@ namespace FullThrottleSun.Vehicle
         [ContextMenu("Rebuild Cubies")]
         public void Rebuild()
         {
-            // Remove legacy sticker visual if present.
             DestroyChild("Visual");
             DestroyChild("Cubies");
             DestroyChild("TurnPivot");
@@ -48,14 +50,14 @@ namespace FullThrottleSun.Vehicle
             root.transform.SetParent(transform, false);
 
             float cubie = CubieSize;
-            float step = cubie + gap;
+            float step = Step;
 
             for (int x = -1; x <= 1; x++)
             for (int y = -1; y <= 1; y++)
             for (int z = -1; z <= 1; z++)
             {
                 if (x == 0 && y == 0 && z == 0)
-                    continue; // invisible core
+                    continue;
 
                 var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 go.name = $"Cubie_{x}_{y}_{z}";
@@ -63,20 +65,22 @@ namespace FullThrottleSun.Vehicle
                 go.transform.localPosition = new Vector3(x, y, z) * step;
                 go.transform.localRotation = Quaternion.identity;
                 go.transform.localScale = Vector3.one * cubie;
-                StripCollider(go);
                 SetBodyColor(go, Black);
-                AttachStickers(go.transform, cubie, x, y, z);
+                AttachStickers(go.transform, x, y, z);
+
+                var box = go.GetComponent<BoxCollider>();
+                if (box == null)
+                    box = go.AddComponent<BoxCollider>();
+                box.isTrigger = true;
+                box.size = Vector3.one * 1.05f;
 
                 var piece = go.AddComponent<RubiksCubie>();
-                piece.SetCoord(new Vector3Int(x, y, z));
+                piece.Initialize(new Vector3Int(x, y, z), box);
             }
         }
 
-        void AttachStickers(Transform cubie, float cubieSize, int x, int y, int z)
+        void AttachStickers(Transform cubie, int x, int y, int z)
         {
-            // Cubie already has localScale = cubieSize, so sticker transforms are in
-            // unit-cube space (1 = full cubie). Using world meters here would shrink
-            // stickers by cubieSize again and make them invisible (all-black cube).
             const float face = 0.51f;
             const float sticker = 0.86f;
             const float depth = 0.06f;
@@ -103,8 +107,6 @@ namespace FullThrottleSun.Vehicle
 
         void DestroyChild(string childName)
         {
-            // Destroy every match — Find() only returns the first, and repeated
-            // Rebuilds used to stack duplicate Cubies roots.
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 Transform t = transform.GetChild(i);
@@ -128,16 +130,8 @@ namespace FullThrottleSun.Vehicle
                 DestroyImmediate(col);
         }
 
-        static void SetBodyColor(GameObject go, Color color)
-        {
-            ApplyColor(go, color, lit: true);
-        }
-
-        static void SetStickerColor(GameObject go, Color color)
-        {
-            // Unlit so sticker colors stay readable in the dark cockpit.
-            ApplyColor(go, color, lit: false);
-        }
+        static void SetBodyColor(GameObject go, Color color) => ApplyColor(go, color, lit: true);
+        static void SetStickerColor(GameObject go, Color color) => ApplyColor(go, color, lit: false);
 
         static void ApplyColor(GameObject go, Color color, bool lit)
         {
@@ -164,11 +158,21 @@ namespace FullThrottleSun.Vehicle
         }
     }
 
-    /// <summary>Tracks a cubie's logical grid coordinate (-1..1).</summary>
+    /// <summary>One physical block of the cube. Coord must be serialized for Play Mode.</summary>
     public class RubiksCubie : MonoBehaviour
     {
-        public Vector3Int Coord { get; private set; }
+        [SerializeField] Vector3Int coord;
+        [SerializeField] Collider pickCollider;
 
-        public void SetCoord(Vector3Int coord) => Coord = coord;
+        public Vector3Int Coord => coord;
+        public Collider PickCollider => pickCollider;
+
+        public void Initialize(Vector3Int c, Collider col)
+        {
+            coord = c;
+            pickCollider = col;
+        }
+
+        public void SetCoord(Vector3Int c) => coord = c;
     }
 }

@@ -4,19 +4,23 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Hold the cube with one hand (<see cref="HandGrabbable"/>), then hold Grip with the
-    /// free hand near a face and twist to turn that layer. Release snaps to 90°.
+    /// Rubik two-hand logic:
+    /// - First hand that collides + Grip becomes the holding hand (cube adsorbs via HandGrabbable).
+    /// - Other hand that collides + Grip twists the face near it.
+    /// - If the holding hand releases while the other is still colliding + Grip, hold transfers.
+    /// Twist uses the visible <see cref="VRHand"/> mesh rotation (not raw tracked/gyro pose).
     /// </summary>
     [RequireComponent(typeof(HandGrabbable))]
-    [DefaultExecutionOrder(-20)]
+    // Before HandGrabbable (-30) so hold can transfer before a physics drop.
+    [DefaultExecutionOrder(-40)]
     public class RubiksCubeInteract : MonoBehaviour
     {
         [SerializeField] HandGrabbable grab;
         [SerializeField] RubiksCubeBuilder builder;
-        [Tooltip("Free-hand distance from cube centre to start / keep a twist.")]
-        [SerializeField] float twistReach = 0.22f;
-        [SerializeField] float twistSensitivity = 1.25f;
+        [SerializeField] float twistReach = 0.28f;
+        [SerializeField] float twistSensitivity = 1.15f;
         [SerializeField] float snapSpeed = 720f;
+        [SerializeField] bool debugLog;
 
         RubiksCubie[] cubies;
         Transform cubiesRoot;
@@ -24,21 +28,19 @@ namespace FullThrottleSun.Vehicle
 
         bool twisting;
         ControllerHand twistHand;
-        int axis;                   // 0=x 1=y 2=z
-        int layer;                  // -1 or +1
-        Vector3 localAxis;          // axis in cube local space
+        int axis;
+        int layer;
+        Vector3 localAxis;
         float angle;
-        Vector3 prevPlanar;
-        bool hasPrevPlanar;
+        Quaternion prevMeshRot;
+        bool hasPrevMeshRot;
         bool snapping;
         float snapTarget;
 
-        bool freeGripPrev;
-        bool freeInReachPrev;
+        bool twistGripPrev;
+        bool twistInReachPrev;
 
-        public HandGrabbable Grab => grab;
         public bool IsHeld => grab != null && grab.IsHeld;
-        public bool IsTwisting => twisting || snapping;
 
         void Awake()
         {
@@ -48,22 +50,39 @@ namespace FullThrottleSun.Vehicle
                 builder = GetComponent<RubiksCubeBuilder>();
         }
 
-        void OnEnable()
-        {
-            EnsureStructure();
-        }
+        void OnEnable() => EnsureStructure();
 
         void OnDisable()
         {
-            CancelTwist(false);
+            CancelTwist();
             VrHandClaim.ReleaseAll(this);
-            freeGripPrev = false;
-            freeInReachPrev = false;
+            twistGripPrev = false;
+            twistInReachPrev = false;
         }
 
         void Update()
         {
             EnsureStructure();
+
+            // Before HandGrabbable drops: if hold Grip released but the other hand
+            // still collides + Grips, transfer adsorb to that hand.
+            if (IsHeld && !VrGrip.IsHeld(grab.HeldHand))
+            {
+                ControllerHand other = Opposite(grab.HeldHand);
+                if (VrGrip.IsHeld(other) && HandCollidesCube(other))
+                {
+                    if (twisting && twistHand == other)
+                        FinishTwist();
+                    if (grab.TryForceGrab(other))
+                        Log($"hold transferred → {other}");
+                }
+            }
+        }
+
+        void LateUpdate()
+        {
+            if (!IsHeld && twisting)
+                FinishTwist();
 
             if (snapping)
             {
@@ -77,126 +96,46 @@ namespace FullThrottleSun.Vehicle
                 return;
             }
 
-            if (!IsHeld)
+            if (IsHeld)
+                TryBeginTwist();
+        }
+
+        void TryBeginTwist()
+        {
+            ControllerHand free = Opposite(grab.HeldHand);
+            bool grip = VrGrip.IsHeld(free);
+            bool gripDown = grip && !twistGripPrev;
+            twistGripPrev = grip;
+
+            if (!TryGetHandMesh(free, out VRHand mesh, out Vector3 handPos, out Quaternion meshRot, out SphereCollider handCol))
             {
-                freeGripPrev = false;
-                freeInReachPrev = false;
+                twistInReachPrev = false;
                 return;
             }
 
-            ControllerHand holdHand = grab.HeldHand;
-            ControllerHand free = Opposite(holdHand);
+            bool colliding = HandCollidesCube(free, handPos, meshRot, handCol);
+            bool inReach = colliding || (handPos - transform.position).sqrMagnitude <= twistReach * twistReach;
+            bool entered = inReach && !twistInReachPrev;
+            twistInReachPrev = inReach;
 
-            bool freeGrip = VrGrip.IsHeld(free);
-            bool freeGripDown = freeGrip && !freeGripPrev;
-            freeGripPrev = freeGrip;
+            if (!grip || !inReach)
+                return;
+            if (!gripDown && !entered)
+                return;
 
-            if (!TryGetHandPos(free, out Vector3 handPos))
-            {
-                freeInReachPrev = false;
+            if (!TryPickCubieLayer(handPos, meshRot, handCol, out axis, out layer, out localAxis))
                 return;
-            }
 
-            float reachSq = twistReach * twistReach;
-            bool inReach = (handPos - transform.position).sqrMagnitude <= reachSq;
-            bool enteredReach = inReach && !freeInReachPrev;
-            freeInReachPrev = inReach;
-
-            // Start when: grip presses while near, OR already gripping and hand enters reach.
-            if (!inReach || !freeGrip)
-                return;
-            if (!freeGripDown && !enteredReach)
-                return;
-            if (!TryPickLayer(handPos, out axis, out layer, out localAxis))
-                return;
             if (!VrHandClaim.TryClaim(free, this) && !VrHandClaim.IsOwnedBy(free, this))
+            {
+                Log("twist claim blocked");
                 return;
+            }
 
             angle = 0f;
-            hasPrevPlanar = false;
-            Vector3 planar0 = Vector3.ProjectOnPlane(handPos - transform.position, transform.TransformDirection(localAxis));
-            if (planar0.sqrMagnitude > 1e-8f)
-            {
-                prevPlanar = planar0.normalized;
-                hasPrevPlanar = true;
-            }
-
+            prevMeshRot = meshRot;
+            hasPrevMeshRot = true;
             BeginTwist(free);
-        }
-
-        static ControllerHand Opposite(ControllerHand hand)
-            => hand == ControllerHand.Left ? ControllerHand.Right : ControllerHand.Left;
-
-        static bool TryGetHandPos(ControllerHand hand, out Vector3 pos)
-        {
-            if (VrGrip.TryGetWorldPose(hand, out pos, out _))
-                return true;
-            // Fallback: VRHand transform if pose source is briefly unavailable.
-            if (VrGrip.TryGetHand(hand, out VRHand view) && view != null)
-            {
-                pos = view.transform.position;
-                return true;
-            }
-            pos = default;
-            return false;
-        }
-
-        void EnsureStructure()
-        {
-            if (cubiesRoot == null)
-                cubiesRoot = transform.Find("Cubies");
-            if (cubiesRoot == null && builder != null)
-            {
-                builder.Rebuild();
-                cubiesRoot = transform.Find("Cubies");
-            }
-
-            if (cubies == null || cubies.Length < 20)
-                cubies = GetComponentsInChildren<RubiksCubie>(true);
-
-            if (turnPivot == null)
-            {
-                Transform existing = transform.Find("TurnPivot");
-                if (existing != null)
-                    turnPivot = existing;
-                else
-                {
-                    var go = new GameObject("TurnPivot");
-                    turnPivot = go.transform;
-                    turnPivot.SetParent(transform, false);
-                }
-            }
-        }
-
-        bool TryPickLayer(Vector3 handWorld, out int faceAxis, out int faceLayer, out Vector3 axisLocal)
-        {
-            faceAxis = 1;
-            faceLayer = 1;
-            axisLocal = Vector3.up;
-
-            Vector3 local = transform.InverseTransformPoint(handWorld);
-            Vector3 abs = new Vector3(Mathf.Abs(local.x), Mathf.Abs(local.y), Mathf.Abs(local.z));
-
-            if (abs.y >= abs.x && abs.y >= abs.z)
-            {
-                faceAxis = 1;
-                faceLayer = local.y >= 0f ? 1 : -1;
-                axisLocal = Vector3.up * faceLayer;
-            }
-            else if (abs.x >= abs.z)
-            {
-                faceAxis = 0;
-                faceLayer = local.x >= 0f ? 1 : -1;
-                axisLocal = Vector3.right * faceLayer;
-            }
-            else
-            {
-                faceAxis = 2;
-                faceLayer = local.z >= 0f ? 1 : -1;
-                axisLocal = Vector3.forward * faceLayer;
-            }
-
-            return true;
         }
 
         void BeginTwist(ControllerHand hand)
@@ -208,24 +147,20 @@ namespace FullThrottleSun.Vehicle
             turnPivot.localPosition = Vector3.zero;
             turnPivot.localRotation = Quaternion.identity;
 
-            if (cubies == null || cubies.Length == 0)
-                cubies = GetComponentsInChildren<RubiksCubie>(true);
-
+            cubies = GetComponentsInChildren<RubiksCubie>(true);
             int parented = 0;
             for (int i = 0; i < cubies.Length; i++)
             {
                 var c = cubies[i];
-                if (c == null)
-                    continue;
-                if (CoordOnAxis(c.Coord, axis) != layer)
+                if (c == null || CoordOnAxis(c.Coord, axis) != layer)
                     continue;
                 c.transform.SetParent(turnPivot, true);
                 parented++;
             }
 
+            Log($"BeginTwist axis={axis} layer={layer} parented={parented}");
             if (parented == 0)
             {
-                // No cubies on that layer — abort cleanly.
                 twisting = false;
                 VrHandClaim.Release(hand, this);
             }
@@ -233,33 +168,39 @@ namespace FullThrottleSun.Vehicle
 
         void TickTwist()
         {
-            if (!IsHeld || !VrGrip.IsHeld(twistHand) || !TryGetHandPos(twistHand, out Vector3 handPos))
+            // Holding hand gone, or twist hand released grip / lost mesh → finish.
+            if (!IsHeld || !VrGrip.IsHeld(twistHand)
+                || !TryGetHandMesh(twistHand, out _, out _, out Quaternion meshRot, out _))
             {
                 FinishTwist();
                 return;
             }
 
-            if ((handPos - transform.position).sqrMagnitude > twistReach * twistReach * 2.25f)
+            // If hold transferred to the twist hand, stop twisting with that hand.
+            if (grab.HeldHand == twistHand)
             {
                 FinishTwist();
                 return;
             }
 
-            Vector3 worldAxis = transform.TransformDirection(localAxis);
-            Vector3 planar = Vector3.ProjectOnPlane(handPos - transform.position, worldAxis);
-            if (planar.sqrMagnitude < 1e-8f)
-                return;
-
-            planar.Normalize();
-            if (hasPrevPlanar)
+            Vector3 worldAxis = transform.TransformDirection(localAxis).normalized;
+            if (hasPrevMeshRot)
             {
-                float delta = Vector3.SignedAngle(prevPlanar, planar, worldAxis);
-                angle += delta * twistSensitivity;
-                turnPivot.localRotation = Quaternion.AngleAxis(angle, localAxis);
+                // Mesh rotation delta projected onto the face axis (not position/gyro orbit).
+                Quaternion delta = meshRot * Quaternion.Inverse(prevMeshRot);
+                delta.ToAngleAxis(out float deg, out Vector3 ax);
+                if (deg > 180f)
+                    deg -= 360f;
+                if (ax.sqrMagnitude > 1e-8f)
+                {
+                    float contrib = deg * Vector3.Dot(ax.normalized, worldAxis);
+                    angle += contrib * twistSensitivity;
+                    turnPivot.localRotation = Quaternion.AngleAxis(angle, localAxis);
+                }
             }
 
-            prevPlanar = planar;
-            hasPrevPlanar = true;
+            prevMeshRot = meshRot;
+            hasPrevMeshRot = true;
         }
 
         void FinishTwist()
@@ -273,6 +214,7 @@ namespace FullThrottleSun.Vehicle
             snapTarget = Mathf.Round(angle / 90f) * 90f;
             snapTarget = Mathf.Clamp(snapTarget, angle - 90f, angle + 90f);
             snapTarget = Mathf.Round(snapTarget / 90f) * 90f;
+            Log($"FinishTwist angle={angle:F1} snap={snapTarget}");
 
             if (Mathf.Abs(snapTarget - angle) < 0.5f)
             {
@@ -285,12 +227,10 @@ namespace FullThrottleSun.Vehicle
 
         void TickSnap()
         {
-            float step = snapSpeed * Time.deltaTime;
-            angle = Mathf.MoveTowards(angle, snapTarget, step);
+            angle = Mathf.MoveTowards(angle, snapTarget, snapSpeed * Time.deltaTime);
             turnPivot.localRotation = Quaternion.AngleAxis(angle, localAxis);
             if (Mathf.Abs(angle - snapTarget) > 0.05f)
                 return;
-
             ApplySnapImmediate(snapTarget);
         }
 
@@ -305,7 +245,7 @@ namespace FullThrottleSun.Vehicle
             if (turns < 0)
                 turns += 4;
 
-            float step = ComputeStep();
+            float step = builder != null ? builder.Step : 0.02f;
 
             for (int i = turnPivot.childCount - 1; i >= 0; i--)
             {
@@ -325,35 +265,223 @@ namespace FullThrottleSun.Vehicle
             turnPivot.localRotation = Quaternion.identity;
             turnPivot.localPosition = Vector3.zero;
             angle = 0f;
-            hasPrevPlanar = false;
+            hasPrevMeshRot = false;
             cubies = GetComponentsInChildren<RubiksCubie>(true);
         }
 
-        void CancelTwist(bool restore)
+        void CancelTwist()
         {
             if (!twisting && !snapping)
                 return;
-
-            if (restore && twisting)
-                ApplySnapImmediate(0f);
-            else if (turnPivot != null && cubiesRoot != null)
+            if (turnPivot != null && cubiesRoot != null)
             {
                 for (int i = turnPivot.childCount - 1; i >= 0; i--)
                     turnPivot.GetChild(i).SetParent(cubiesRoot, true);
                 turnPivot.localRotation = Quaternion.identity;
             }
-
             twisting = false;
             snapping = false;
-            VrHandClaim.ReleaseAll(this);
+            // Don't ReleaseAll — hold hand may still be claimed by HandGrabbable.
+            VrHandClaim.Release(twistHand, this);
         }
 
-        float ComputeStep()
+        bool HandCollidesCube(ControllerHand hand)
         {
-            if (builder != null)
-                return builder.CubieSize + 0.0015f;
-            return 0.019f;
+            if (!TryGetHandMesh(hand, out _, out Vector3 pos, out Quaternion rot, out SphereCollider col))
+                return false;
+            return HandCollidesCube(hand, pos, rot, col);
         }
+
+        bool HandCollidesCube(ControllerHand hand, Vector3 handPos, Quaternion handRot, SphereCollider handCol)
+        {
+            // Root grab collider.
+            var rootCol = GetComponent<Collider>();
+            if (rootCol != null && handCol != null && GrabOverlap.Touches(handCol, handPos, handRot, rootCol))
+                return true;
+
+            if (cubies == null || cubies.Length == 0)
+                cubies = GetComponentsInChildren<RubiksCubie>(true);
+
+            for (int i = 0; i < cubies.Length; i++)
+            {
+                var c = cubies[i];
+                if (c == null || c.PickCollider == null || handCol == null)
+                    continue;
+                if (GrabOverlap.Touches(handCol, handPos, handRot, c.PickCollider))
+                    return true;
+            }
+
+            return (handPos - transform.position).sqrMagnitude <= twistReach * twistReach * 0.25f;
+        }
+
+        /// <summary>Visible hand-mesh pose (VRHand transform), not raw tracked/gyro pose.</summary>
+        static bool TryGetHandMesh(
+            ControllerHand hand,
+            out VRHand mesh,
+            out Vector3 pos,
+            out Quaternion rot,
+            out SphereCollider handCol)
+        {
+            mesh = null;
+            handCol = null;
+            pos = default;
+            rot = Quaternion.identity;
+            if (!VrGrip.TryGetHand(hand, out mesh) || mesh == null)
+                return false;
+
+            handCol = mesh.GrabCollider;
+            pos = mesh.transform.position;
+            rot = mesh.transform.rotation;
+            return true;
+        }
+
+        void EnsureStructure()
+        {
+            if (cubiesRoot == null)
+                cubiesRoot = transform.Find("Cubies");
+            if (cubiesRoot == null && builder != null)
+            {
+                builder.Rebuild();
+                cubiesRoot = transform.Find("Cubies");
+            }
+
+            if (cubies == null || cubies.Length < 20)
+                cubies = GetComponentsInChildren<RubiksCubie>(true);
+
+            for (int i = 0; i < cubies.Length; i++)
+            {
+                if (cubies[i] == null || cubies[i].Coord != Vector3Int.zero)
+                    continue;
+                if (TryParseCoordFromName(cubies[i].name, out Vector3Int parsed))
+                    cubies[i].SetCoord(parsed);
+            }
+
+            if (turnPivot == null)
+            {
+                Transform existing = transform.Find("TurnPivot");
+                if (existing != null)
+                    turnPivot = existing;
+                else
+                {
+                    turnPivot = new GameObject("TurnPivot").transform;
+                    turnPivot.SetParent(transform, false);
+                }
+            }
+        }
+
+        static bool TryParseCoordFromName(string name, out Vector3Int coord)
+        {
+            coord = Vector3Int.zero;
+            if (string.IsNullOrEmpty(name) || !name.StartsWith("Cubie_"))
+                return false;
+            string[] parts = name.Split('_');
+            if (parts.Length != 4)
+                return false;
+            if (!int.TryParse(parts[1], out int x)) return false;
+            if (!int.TryParse(parts[2], out int y)) return false;
+            if (!int.TryParse(parts[3], out int z)) return false;
+            coord = new Vector3Int(x, y, z);
+            return true;
+        }
+
+        bool TryPickCubieLayer(Vector3 handPos, Quaternion handRot, SphereCollider handCol, out int faceAxis, out int faceLayer, out Vector3 axisLocal)
+        {
+            faceAxis = 1;
+            faceLayer = 1;
+            axisLocal = Vector3.up;
+
+            if (cubies == null || cubies.Length == 0)
+                cubies = GetComponentsInChildren<RubiksCubie>(true);
+
+            RubiksCubie best = null;
+            float bestDist = float.MaxValue;
+
+            for (int i = 0; i < cubies.Length; i++)
+            {
+                var c = cubies[i];
+                if (c == null)
+                    continue;
+
+                float d = (c.transform.position - handPos).sqrMagnitude;
+                bool touch = handCol != null && c.PickCollider != null
+                    && GrabOverlap.Touches(handCol, handPos, handRot, c.PickCollider);
+                if (!touch && d > twistReach * twistReach)
+                    continue;
+                if (touch)
+                    d *= 0.01f;
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    best = c;
+                }
+            }
+
+            Vector3 localHand = transform.InverseTransformPoint(handPos);
+            if (best == null)
+            {
+                Vector3 abs = new Vector3(Mathf.Abs(localHand.x), Mathf.Abs(localHand.y), Mathf.Abs(localHand.z));
+                if (abs.y >= abs.x && abs.y >= abs.z)
+                {
+                    faceAxis = 1;
+                    faceLayer = localHand.y >= 0f ? 1 : -1;
+                }
+                else if (abs.x >= abs.z)
+                {
+                    faceAxis = 0;
+                    faceLayer = localHand.x >= 0f ? 1 : -1;
+                }
+                else
+                {
+                    faceAxis = 2;
+                    faceLayer = localHand.z >= 0f ? 1 : -1;
+                }
+            }
+            else
+            {
+                Vector3Int coord = best.Coord;
+                float sx = Mathf.Abs(localHand.x);
+                float sy = Mathf.Abs(localHand.y);
+                float sz = Mathf.Abs(localHand.z);
+                if (Mathf.Abs(coord.x) == 1 && sx >= sy && sx >= sz)
+                {
+                    faceAxis = 0;
+                    faceLayer = coord.x >= 0 ? 1 : -1;
+                }
+                else if (Mathf.Abs(coord.y) == 1 && sy >= sx && sy >= sz)
+                {
+                    faceAxis = 1;
+                    faceLayer = coord.y >= 0 ? 1 : -1;
+                }
+                else if (Mathf.Abs(coord.z) == 1)
+                {
+                    faceAxis = 2;
+                    faceLayer = coord.z >= 0 ? 1 : -1;
+                }
+                else if (Mathf.Abs(coord.y) == 1)
+                {
+                    faceAxis = 1;
+                    faceLayer = coord.y;
+                }
+                else if (Mathf.Abs(coord.x) == 1)
+                {
+                    faceAxis = 0;
+                    faceLayer = coord.x;
+                }
+                else
+                {
+                    faceAxis = 2;
+                    faceLayer = coord.z >= 0 ? 1 : -1;
+                }
+            }
+
+            if (faceAxis == 0) axisLocal = Vector3.right * faceLayer;
+            else if (faceAxis == 1) axisLocal = Vector3.up * faceLayer;
+            else axisLocal = Vector3.forward * faceLayer;
+            return true;
+        }
+
+        static ControllerHand Opposite(ControllerHand hand)
+            => hand == ControllerHand.Left ? ControllerHand.Right : ControllerHand.Left;
 
         static int CoordOnAxis(Vector3Int c, int faceAxis)
         {
@@ -365,24 +493,23 @@ namespace FullThrottleSun.Vehicle
         static Vector3Int RotateCoord(Vector3Int c, int faceAxis, bool outwardPositive)
         {
             Vector3Int r;
-            if (faceAxis == 0)
-                r = new Vector3Int(c.x, -c.z, c.y);
-            else if (faceAxis == 1)
-                r = new Vector3Int(c.z, c.y, -c.x);
-            else
-                r = new Vector3Int(-c.y, c.x, c.z);
+            if (faceAxis == 0) r = new Vector3Int(c.x, -c.z, c.y);
+            else if (faceAxis == 1) r = new Vector3Int(c.z, c.y, -c.x);
+            else r = new Vector3Int(-c.y, c.x, c.z);
 
             if (!outwardPositive)
             {
-                if (faceAxis == 0)
-                    r = new Vector3Int(c.x, c.z, -c.y);
-                else if (faceAxis == 1)
-                    r = new Vector3Int(-c.z, c.y, c.x);
-                else
-                    r = new Vector3Int(c.y, -c.x, c.z);
+                if (faceAxis == 0) r = new Vector3Int(c.x, c.z, -c.y);
+                else if (faceAxis == 1) r = new Vector3Int(-c.z, c.y, c.x);
+                else r = new Vector3Int(c.y, -c.x, c.z);
             }
-
             return r;
+        }
+
+        void Log(string msg)
+        {
+            if (debugLog)
+                Debug.Log($"[RubiksCube] {msg}", this);
         }
     }
 }
