@@ -5,6 +5,7 @@ using FMOD.Studio;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Audio;
+using static Oculus.Interaction.Context;
 using Random = UnityEngine.Random;
 
 public class RadioPlayer : MonoBehaviour
@@ -20,32 +21,23 @@ public class RadioPlayer : MonoBehaviour
     State currentState;
     State prevState;
 
+    [SerializeField] FMODUnity.EventReference Zap;
     [SerializeField] FMODUnity.EventReference Voice;
     [SerializeField] FMODUnity.EventReference Music;
 
-    AudioSource source;
+    FMOD.Studio.EventInstance currentPlaying;
 
-    [Header("Defaults")]
-
-    [SerializeField] List<AudioClip> Transitions = new List<AudioClip>();
-
-    [Header("106.9: The Drive")]
-
-    [SerializeField] List<AudioClip> TheDriveVoice = new List<AudioClip>();
-    [SerializeField] List<AudioClip> TheDriveMusic = new List<AudioClip>();
+    FMOD.Studio.PLAYBACK_STATE state;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        EventInstance voice = FMODUnity.RuntimeManager.CreateInstance(Voice);
-        voice.start();
-        /*
-        source = GetComponent<AudioSource>();
-        source.clip = TheDriveVoice[0];
+        currentPlaying = FMODUnity.RuntimeManager.CreateInstance(Voice);
+        currentPlaying.start();
         currentState = State.Voice;
-        source.Play();
-        StartCoroutine(PlayRadio());*/
     }
+
+    
 
     /*[AOT.MonoPInvokeCallback(typeof(FMOD.Studio.EVENT_CALLBACK))]
     static FMOD.RESULT DialogueEventCallback(FMOD.Studio.EVENT_CALLBACK_TYPE type, IntPtr instancePtr, IntPtr parameterPtr)
@@ -58,48 +50,44 @@ public class RadioPlayer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        currentPlaying.getPlaybackState(out state);
+        if (state == PLAYBACK_STATE.STOPPED)
+        {
+            currentPlaying = FMODUnity.RuntimeManager.CreateInstance(ChooseNewRadio());
+            currentPlaying.start();
+        }
     }
 
-    //this code modified from https://gamedev.stackexchange.com/questions/169339/efficient-way-to-detect-when-audio-clip-ends
-
-    private IEnumerator PlayRadio()
+ 
+    FMODUnity.EventReference ChooseNewRadio()
     {
-        var waitForClipRemainingTime = new WaitForSeconds((source.clip.length - source.time));
-        yield return waitForClipRemainingTime;
-        ChooseNewRadio();
-    }
 
-    void ChooseNewRadio()
-    {
         //if not in transition, enter transition
         if (currentState != State.Transition)
         {
             prevState = currentState;
             currentState = State.Transition;
 
-            source.clip = Transitions[Random.Range(0, Transitions.Count)];
+            return Zap;
         }
         //if coming out of transition, check if it's time for voice or music & switch to whichever
         else if (prevState == State.Voice)
         {
-            source.clip = TheDriveMusic[Random.Range(0, TheDriveMusic.Count)];
             currentState = State.Music;
+
+            return Music;
         }
         else if (prevState == State.Music) 
         {
-            source.clip = TheDriveVoice[Random.Range(0, TheDriveVoice.Count)];
             currentState = State.Voice;
+
+            return Voice;
         }
         else
         {
             Debug.Log("radio states broken :(");
+            return Zap;
         }
-
-
-        source.Play();
-        StartCoroutine(PlayRadio());
-
     }
 
 }
