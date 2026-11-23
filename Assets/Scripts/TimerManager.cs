@@ -16,6 +16,15 @@ public class TimerManager : MonoBehaviour
     private bool isFadingOut = false;
     private float startIntensity = 0f;
 
+    public TextMeshProUGUI reasonText;
+    public GameObject lostScreen;
+
+    [Header("Vignette Effect Settings")]
+    [Tooltip("Duration of Fading In/Out Effect")]
+    [SerializeField] private float duration;
+    [Tooltip("Intensity of Effect")]
+    [SerializeField] private float maxIntensity;
+
     [Header("Sleep Settings")]
     public float energyTimer;
     public float maxTime;
@@ -25,12 +34,6 @@ public class TimerManager : MonoBehaviour
     public float tempTimer;
     private bool hotTemp;
     private bool coldTemp;
-
-    [SerializeField] private float duration;
-    [SerializeField] private float maxIntensity;
-
-    public TextMeshProUGUI reasonText;
-    public GameObject lostScreen;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
