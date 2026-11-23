@@ -20,7 +20,7 @@ public class CopBehavior : MonoBehaviour
     {
         spawnedCop = Instantiate(copPrefab, Vector3.zero, Quaternion.identity);
         spawnedCop.SetActive(false);
-
+        //violationTracker = GetComponent<ViolationTracker>();
 
         //player = GameObject.FindGameObjectWithTag("Player").transform;
         //nav = GetComponent<NavMeshAgent>();
