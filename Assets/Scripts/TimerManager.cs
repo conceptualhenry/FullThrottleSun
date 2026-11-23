@@ -121,6 +121,7 @@ public class TimerManager : MonoBehaviour
         startIntensity = vignette.intensity.value;
         elapsedTime = 0f;
         isFadingOut = true;
+        isFadingIn = false;
     }
 
     public void TriggerVignette()
@@ -130,5 +131,6 @@ public class TimerManager : MonoBehaviour
         startIntensity = vignette.intensity.value;
         elapsedTime = 0f;
         isFadingIn = true;
+        isFadingOut = false;
     }
 }

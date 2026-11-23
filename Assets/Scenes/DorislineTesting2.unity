@@ -5506,6 +5506,10 @@ PrefabInstance:
       propertyPath: reasonText
       value: 
       objectReference: {fileID: 57903992}
+    - target: {fileID: 4418210660297417174, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: violationTracker
+      value: 
+      objectReference: {fileID: 2091885583}
     - target: {fileID: 5076028850063619535, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: lostScreen
       value: 
@@ -5514,6 +5518,10 @@ PrefabInstance:
       propertyPath: reasonText
       value: 
       objectReference: {fileID: 57903992}
+    - target: {fileID: 5076028850063619535, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: violationTracker
+      value: 
+      objectReference: {fileID: 2091885583}
     - target: {fileID: 5114412446861710237, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: lostScreen
       value: 
@@ -5522,6 +5530,10 @@ PrefabInstance:
       propertyPath: reasonText
       value: 
       objectReference: {fileID: 57903992}
+    - target: {fileID: 5114412446861710237, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: violationTracker
+      value: 
+      objectReference: {fileID: 2091885583}
     - target: {fileID: 5427437519233582624, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: m_Size.x
       value: 1.4113681
@@ -5586,6 +5598,10 @@ PrefabInstance:
       propertyPath: reasonText
       value: 
       objectReference: {fileID: 57903992}
+    - target: {fileID: 7998719784604039713, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: violationTracker
+      value: 
+      objectReference: {fileID: 2091885583}
     - target: {fileID: 8190919437035064316, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: m_Size.x
       value: 1.3452797
@@ -5614,6 +5630,10 @@ PrefabInstance:
       propertyPath: reasonText
       value: 
       objectReference: {fileID: 57903992}
+    - target: {fileID: 8587040730059061150, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
+      propertyPath: violationTracker
+      value: 
+      objectReference: {fileID: 2091885583}
     - target: {fileID: 8981796718460971239, guid: cc9a6090b9a83d7479ff8c3e75f86bfb, type: 3}
       propertyPath: lostScreen
       value: 
@@ -7407,7 +7427,7 @@ MonoBehaviour:
   maxTime: 15
   tempTimer: 0
   duration: 1.5
-  maxIntensity: 0.4
+  maxIntensity: 0.45
   reasonText: {fileID: 57903992}
   lostScreen: {fileID: 1655601322}
 --- !u!1 &2091885579
@@ -7468,7 +7488,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Violation Number
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -7562,7 +7582,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ViolationTracker
   maxViolations: 3
   currentViolations: 0
-  copBehavior: {fileID: 0}
 --- !u!1 &2092299696
 GameObject:
   m_ObjectHideFlags: 0
@@ -7575,6 +7594,7 @@ GameObject:
   - component: {fileID: 2092299700}
   - component: {fileID: 2092299699}
   - component: {fileID: 2092299698}
+  - component: {fileID: 2092299702}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -7675,6 +7695,18 @@ Transform:
   - {fileID: 1994297260}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2092299702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092299696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d0a312fc29153d4aacaadc6b92eaf11, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EventManager
 --- !u!1001 &2105157574
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7729,34 +7761,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1829922410192357324, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 9114245218899287633, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 1829922410192357324, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2105157576}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
---- !u!1 &2105157575 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1829922410192357324, guid: ad0f80dc67ce9684b8972b2f04854d93, type: 3}
-  m_PrefabInstance: {fileID: 2105157574}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2105157576
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2105157575}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dc6cea5e57d56c846a48ad145cf5dbeb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CopBehavior
-  stopSign: {fileID: 0}
 --- !u!1 &2105333162
 GameObject:
   m_ObjectHideFlags: 0

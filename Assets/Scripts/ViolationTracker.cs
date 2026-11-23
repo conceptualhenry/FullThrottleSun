@@ -4,7 +4,6 @@ public class ViolationTracker : MonoBehaviour
 {
     public int maxViolations = 3;
     public int currentViolations;
-    public CopBehavior copBehavior;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
