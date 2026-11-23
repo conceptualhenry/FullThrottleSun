@@ -4242,7 +4242,7 @@ Transform:
   m_GameObject: {fileID: 1784077811}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10.36, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.6, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4505,6 +4505,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13f341f775a368443809bb2cf8a07e67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RadioPlayer
+  Zap:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   Voice:
     Guid:
       Data1: 0
@@ -4519,27 +4526,6 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  Transitions:
-  - {fileID: 8300000, guid: ab78a6ee63a0d43448ded2bf3865b39a, type: 3}
-  - {fileID: 8300000, guid: 2e8e44833cfbf48469555243445c34ef, type: 3}
-  TheDriveVoice:
-  - {fileID: 8300000, guid: 009e93283f5cf394780b3597999bf65f, type: 3}
-  - {fileID: 8300000, guid: aaaac4150d6665247b58158905c9f95d, type: 3}
-  - {fileID: 8300000, guid: 1b82fb83d44a29046aa48a3ca9daa078, type: 3}
-  - {fileID: 8300000, guid: 82efc4efa44377e4ab734f430cd31e08, type: 3}
-  - {fileID: 8300000, guid: 566b672ca0a653046add1b0929226d15, type: 3}
-  - {fileID: 8300000, guid: 0316add260baf874f920a1745e4a1be6, type: 3}
-  - {fileID: 8300000, guid: 14ad816f307d67944a7edc4dd3fa188a, type: 3}
-  - {fileID: 8300000, guid: e90a8fa4a0ba1044dbbf6961ad5bc1d9, type: 3}
-  - {fileID: 8300000, guid: eb54ec00d13b07041b1b1c1b028ca486, type: 3}
-  - {fileID: 8300000, guid: 206def79936c702489561b144257c5fd, type: 3}
-  - {fileID: 8300000, guid: 3737e1a8d345a5f4a91012c9903f6085, type: 3}
-  TheDriveMusic:
-  - {fileID: 8300000, guid: d11cda0191ea0884cb48edbb52c00a27, type: 3}
-  - {fileID: 8300000, guid: ba320f6ff5d8d8a40834b8cb5aacee8c, type: 3}
-  - {fileID: 8300000, guid: 43a356f14b50f0a4a8129ab8585880af, type: 3}
-  - {fileID: 8300000, guid: 30c9473c0c2e3f14582037a7d3139465, type: 3}
-  - {fileID: 8300000, guid: 6883b861d992bfc4daaa0f826811c479, type: 3}
 --- !u!82 &1916512185
 AudioSource:
   m_ObjectHideFlags: 0
@@ -5683,6 +5669,10 @@ PrefabInstance:
     - target: {fileID: 3421087907697419254, guid: 7823bba6c74274d488d27c978924215f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8841714372873468322, guid: 7823bba6c74274d488d27c978924215f, type: 3}
+      propertyPath: m_Name
+      value: Ground
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
