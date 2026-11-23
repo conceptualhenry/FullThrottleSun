@@ -21,6 +21,8 @@ namespace FullThrottleSun.Controller
         GearReverse,
         GearNeutral,
         GearDrive,
+        /// <summary>Cycle R → N → D → R with one key.</summary>
+        GearCycle,
         Menu,
         Secondary,
         GripLeft,

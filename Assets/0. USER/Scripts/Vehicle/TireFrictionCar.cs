@@ -178,6 +178,10 @@ namespace FullThrottleSun.Vehicle
         public float BrakeInput => brakeInput;
         public bool HandbrakeInput => handbrakeInput;
         public AutoGear Gear => autoGear;
+        /// <summary>Signed forward speed in km/h (negative when reversing).</summary>
+        public float SpeedKmh => speedKmh;
+        /// <summary>0..1 throttle input this frame.</summary>
+        public float ThrottleInput => throttleInput;
 
         public void SetGear(AutoGear gear) => autoGear = gear;
         /// <summary>Front wheel steer angle in degrees; right positive.</summary>

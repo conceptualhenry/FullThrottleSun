@@ -22,7 +22,8 @@ namespace FullThrottleSun.Controller
                 KeyboardAction.Handbrake,
                 KeyboardAction.GearReverse,
                 KeyboardAction.GearNeutral,
-                KeyboardAction.GearDrive
+                KeyboardAction.GearDrive,
+                KeyboardAction.GearCycle
             }),
             ("Lights", new[]
             {
