@@ -10,14 +10,18 @@ Shader "Hidden/FullThrottle/VolumetricLightScattering"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
+        TEXTURE2D_X(_OcclusionTex);
+        float4 _OcclusionTex_TexelSize;
+
         float4 _SunParams;  // xy = sun UV, z = sun radius, w = intensity
         float4 _RayParams;  // x = decay, y = exposure, z = samples, w = density
         float4 _VLSColor;
-        float4 _DepthFade;  // x = near fade start, y = far fade end (eye-space meters)
+        float4 _DepthFade;  // x = near (unused for source), y = min eye-depth that counts as light source
 
-        float FarMask(float rawDepth)
+        // Near geometry = black (occludes). Sky / far = bright emitter.
+        // Soft ramp recovers v1-like strength while still letting props cut shafts.
+        float LightSourceMask(float rawDepth)
         {
-            // Sky / missing depth → full contribute.
             #if UNITY_REVERSED_Z
             if (rawDepth <= 0.00001)
                 return 1.0;
@@ -27,29 +31,58 @@ Shader "Hidden/FullThrottle/VolumetricLightScattering"
             #endif
 
             float eye = LinearEyeDepth(rawDepth, _ZBufferParams);
-            return smoothstep(_DepthFade.x, _DepthFade.y, eye);
+            // _DepthFade.x = near (dark), .y = far (full emit)
+            return smoothstep(_DepthFade.x, max(_DepthFade.x + 0.01, _DepthFade.y), eye);
         }
 
-        float SunWeight(float2 uv, float2 sunUV, float sunRadius)
+        float SunDisk(float2 uv, float2 sunUV, float sunRadius)
         {
             float2 d = uv - sunUV;
             d.x *= _ScreenParams.x / max(1.0, _ScreenParams.y);
             float dist = length(d);
             float w = saturate(1.0 - dist / max(1e-4, sunRadius));
-            return w * w;
+            // Broader falloff so the disk feeds stronger shafts like v1.
+            return w * w * (0.35 + 0.65 * w);
+        }
+
+        float OcclusionAt(float2 uv)
+        {
+            float rawDepth = SampleSceneDepth(uv);
+            float source = LightSourceMask(rawDepth);
+            float disk = SunDisk(uv, _SunParams.xy, max(1e-4, _SunParams.z));
+            // Mix: strong sun disk + softer far contribution toward the sun (v1 feel).
+            return source * saturate(disk + 0.45 * source * disk);
         }
         ENDHLSL
 
-        // Screen-space volumetric light scattering (depth-aware Tyndall shafts).
+        // Pass 0: occlusion mask (bright = unoccluded sun/sky disk).
         Pass
         {
-            Name "VolumetricLightScattering"
+            Name "VLS_Occlusion"
 
             HLSLPROGRAM
             #pragma vertex Vert
-            #pragma fragment FragVLS
+            #pragma fragment FragOcclusion
 
-            half4 FragVLS(Varyings input) : SV_Target
+            half4 FragOcclusion(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                float o = OcclusionAt(input.texcoord);
+                return half4(o, o, o, 1);
+            }
+            ENDHLSL
+        }
+
+        // Pass 1: radial blur the occlusion mask toward the sun, then add shafts.
+        Pass
+        {
+            Name "VLS_Scatter"
+
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment FragScatter
+
+            half4 FragScatter(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 float2 uv = input.texcoord;
@@ -57,7 +90,6 @@ Shader "Hidden/FullThrottle/VolumetricLightScattering"
                 half3 scene = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv, 0).rgb;
 
                 float2 sunUV = _SunParams.xy;
-                float sunRadius = max(1e-4, _SunParams.z);
                 float intensity = _SunParams.w;
                 float decay = saturate(_RayParams.x);
                 float exposure = _RayParams.y;
@@ -69,6 +101,8 @@ Shader "Hidden/FullThrottle/VolumetricLightScattering"
                 float illumination = 1.0;
                 float accum = 0.0;
 
+                // Sample the precomputed occlusion mask along the screen-space ray.
+                // Occluders are black in the mask → shafts break behind them.
                 [loop]
                 for (int i = 0; i < samples; i++)
                 {
@@ -76,10 +110,8 @@ Shader "Hidden/FullThrottle/VolumetricLightScattering"
                     if (coord.x < 0.0 || coord.x > 1.0 || coord.y < 0.0 || coord.y > 1.0)
                         break;
 
-                    float rawDepth = SampleSceneDepth(coord);
-                    float farMask = FarMask(rawDepth);
-                    float sun = SunWeight(coord, sunUV, sunRadius);
-                    accum += farMask * sun * illumination;
+                    float occl = SAMPLE_TEXTURE2D_X_LOD(_OcclusionTex, sampler_LinearClamp, coord, 0).r;
+                    accum += occl * illumination;
                     illumination *= decay;
                 }
 

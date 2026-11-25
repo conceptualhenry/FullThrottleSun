@@ -13,15 +13,16 @@ public sealed class VolumetricLightScatteringFeature : ScriptableRendererFeature
     public class Settings
     {
         [Range(0f, 8f)] public float intensity = 2.2f;
-        [Range(0.01f, 1.5f)] public float sunRadius = 0.35f;
+        [Tooltip("Screen-space sun disk radius used as the light source in the occlusion mask. Keep small so props can cover it.")]
+        [Range(0.01f, 0.5f)] public float sunRadius = 0.12f;
         [Range(0.5f, 1f)] public float decay = 0.92f;
         [Range(0.1f, 4f)] public float exposure = 1.1f;
         [Range(8, 64)] public int sampleCount = 32;
         [Range(0.2f, 2f)] public float density = 0.95f;
         [Range(0.2f, 1.5f)] public float falloff = 0.85f;
-        [Tooltip("Eye-space meters: closer than this contributes little (car interior).")]
+        [Tooltip("Unused for emission; kept for compatibility.")]
         public float depthNear = 8f;
-        [Tooltip("Eye-space meters: farther than this fully contributes (distant view / sky).")]
+        [Tooltip("Eye-space meters: only sky / depths beyond this may emit shafts (occlusion sources).")]
         public float depthFar = 40f;
         public Color color = new Color(1f, 0.93f, 0.75f, 1f);
         [Tooltip("Only apply shafts while the camera is inside Car/SunZone.")]
