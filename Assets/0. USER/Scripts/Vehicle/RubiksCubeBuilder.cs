@@ -107,11 +107,18 @@ namespace FullThrottleSun.Vehicle
 
         void DestroyChild(string childName)
         {
+            // Match exact name and Unity's "Cubies (1)" duplicates from deferred Destroy.
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 Transform t = transform.GetChild(i);
-                if (t == null || t.name != childName)
+                if (t == null)
                     continue;
+                string n = t.name;
+                if (n != childName && !n.StartsWith(childName + " (", System.StringComparison.Ordinal))
+                    continue;
+                // Disable immediately so leftover solid/trigger colliders cannot pin the car
+                // while a play-mode Destroy() is still pending.
+                t.gameObject.SetActive(false);
                 if (Application.isPlaying)
                     Destroy(t.gameObject);
                 else
@@ -124,6 +131,8 @@ namespace FullThrottleSun.Vehicle
             var col = go.GetComponent<Collider>();
             if (col == null)
                 return;
+            // Stickers must never keep a solid BoxCollider — that was stacking thousands
+            // of contacts under the car and locking drive.
             if (Application.isPlaying)
                 Destroy(col);
             else

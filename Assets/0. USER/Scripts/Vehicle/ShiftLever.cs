@@ -219,11 +219,12 @@ namespace FullThrottleSun.Vehicle
                 return;
             if (KeyboardBindings.WasPressedThisFrame(KeyboardAction.GearCycle))
             {
-                // R → N → D → R
-                int next = (int)gear + 1;
-                if (next > (int)TireFrictionCar.AutoGear.Drive)
-                    next = (int)TireFrictionCar.AutoGear.Reverse;
-                SetGear((TireFrictionCar.AutoGear)next);
+                // Skip Neutral on the cycle key so a quick tap can't leave you stranded in N.
+                // N is still available via the Gear Neutral binding (2).
+                if (gear == TireFrictionCar.AutoGear.Drive)
+                    SetGear(TireFrictionCar.AutoGear.Reverse);
+                else
+                    SetGear(TireFrictionCar.AutoGear.Drive);
             }
             else if (KeyboardBindings.WasPressedThisFrame(KeyboardAction.GearReverse))
                 SetGear(TireFrictionCar.AutoGear.Reverse);
@@ -241,6 +242,8 @@ namespace FullThrottleSun.Vehicle
 
         void ApplyGearToCar()
         {
+            if (car == null)
+                car = GetComponentInParent<TireFrictionCar>();
             if (car != null)
                 car.SetGear(gear);
         }
