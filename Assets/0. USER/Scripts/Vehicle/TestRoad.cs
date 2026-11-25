@@ -115,6 +115,14 @@ namespace FullThrottleSun.Vehicle
                 BuildPosts(CreateGroup(root, "Posts"), centre, distances);
             if (scenery)
                 BuildScenery(CreateGroup(root, "Scenery"), centre);
+
+            // Car body must ignore new road meshes; tyre rays still hit them.
+            if (Application.isPlaying)
+            {
+                var cars = FindObjectsByType<TireFrictionCar>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+                for (int i = 0; i < cars.Length; i++)
+                    cars[i].RefreshDriveSurfaceIgnore();
+            }
         }
 
         void BuildRoad(Transform root, List<Vector3> centre)
@@ -139,11 +147,21 @@ namespace FullThrottleSun.Vehicle
                     GameObject piece = CreateMeshObject(root, pieceName, mesh, material);
                     piece.AddComponent<MeshCollider>().sharedMesh = mesh;
 
+                    // Every drive strip needs GroundSurface so the car body ignores it
+                    // (tyre rays still hit). Section overrides grip / rolling resistance.
+                    var surface = piece.GetComponent<GroundSurface>();
+                    if (surface == null)
+                        surface = piece.AddComponent<GroundSurface>();
+                    surface.supportCarBody = true;
                     if (section != null)
                     {
-                        var surface = piece.AddComponent<GroundSurface>();
                         surface.gripMultiplier = section.gripMultiplier;
                         surface.rollingResistanceMultiplier = section.rollingResistanceMultiplier;
+                    }
+                    else
+                    {
+                        surface.gripMultiplier = 1f;
+                        surface.rollingResistanceMultiplier = 1f;
                     }
                 }
                 pieceStart = cut;

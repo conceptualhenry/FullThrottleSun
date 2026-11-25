@@ -44,6 +44,7 @@ namespace FullThrottleSun.Controller
             { KeyboardAction.GearReverse, Key.Digit1 },
             { KeyboardAction.GearNeutral, Key.Digit2 },
             { KeyboardAction.GearDrive, Key.Digit3 },
+            { KeyboardAction.GearCycle, Key.G },
             { KeyboardAction.Menu, Key.Escape },
             { KeyboardAction.Secondary, Key.LeftShift },
             { KeyboardAction.GripLeft, Key.Q },
@@ -71,6 +72,7 @@ namespace FullThrottleSun.Controller
                 case KeyboardAction.GearReverse: return "Gear R";
                 case KeyboardAction.GearNeutral: return "Gear N";
                 case KeyboardAction.GearDrive: return "Gear D";
+                case KeyboardAction.GearCycle: return "Gear Cycle";
                 case KeyboardAction.Menu: return "Menu";
                 case KeyboardAction.Secondary: return "Secondary";
                 case KeyboardAction.GripLeft: return "Grip L";

@@ -48,7 +48,6 @@ public class Blindness : MonoBehaviour
             if (restartAllowed)
             {
                 StopCoroutine(blindnessTimer);
-                print("coroutine SHOULD have stoped");
                 restartAllowed = false;
                 StartCoroutine(restartTimer());
             }    
@@ -66,9 +65,7 @@ public class Blindness : MonoBehaviour
     IEnumerator blindnessWait()
     {
         shrinkingOn = false;
-        print("wait started");
         yield return new WaitForSeconds(waitTime);
-        print("wait ended");
         shrinkingOn = true;
     }
 

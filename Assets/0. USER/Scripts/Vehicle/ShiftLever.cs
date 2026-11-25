@@ -6,7 +6,7 @@ namespace FullThrottleSun.Vehicle
     /// <summary>
     /// Automatic R / N / D shifter.
     /// Grab <c>Shift_Lever</c>, then push/pull the hand (or flick that hand's stick)
-    /// to step R ↔ N ↔ D. Keyboard: 1 = R, 2 = N, 3 = D.
+    /// to step R ↔ N ↔ D. Keyboard: 1 = R, 2 = N, 3 = D, G = cycle.
     /// </summary>
     [DefaultExecutionOrder(-40)]
     public class ShiftLever : MonoBehaviour, IHandPinProvider
@@ -217,7 +217,16 @@ namespace FullThrottleSun.Vehicle
         {
             if (SettingsMenu.IsOpen || KeyboardBindings.IsListening)
                 return;
-            if (KeyboardBindings.WasPressedThisFrame(KeyboardAction.GearReverse))
+            if (KeyboardBindings.WasPressedThisFrame(KeyboardAction.GearCycle))
+            {
+                // Skip Neutral on the cycle key so a quick tap can't leave you stranded in N.
+                // N is still available via the Gear Neutral binding (2).
+                if (gear == TireFrictionCar.AutoGear.Drive)
+                    SetGear(TireFrictionCar.AutoGear.Reverse);
+                else
+                    SetGear(TireFrictionCar.AutoGear.Drive);
+            }
+            else if (KeyboardBindings.WasPressedThisFrame(KeyboardAction.GearReverse))
                 SetGear(TireFrictionCar.AutoGear.Reverse);
             else if (KeyboardBindings.WasPressedThisFrame(KeyboardAction.GearNeutral))
                 SetGear(TireFrictionCar.AutoGear.Neutral);
@@ -233,6 +242,8 @@ namespace FullThrottleSun.Vehicle
 
         void ApplyGearToCar()
         {
+            if (car == null)
+                car = GetComponentInParent<TireFrictionCar>();
             if (car != null)
                 car.SetGear(gear);
         }

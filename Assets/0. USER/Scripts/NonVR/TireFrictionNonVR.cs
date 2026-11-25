@@ -94,6 +94,10 @@ namespace FullThrottleSun.Vehicle
         [Range(0f, 1f)][SerializeField] float reverseTorqueScale = 0.5f;
         [Min(0.1f)][SerializeField] float maxReverseSpeed = 8f;
         [SerializeField] TireFrictionCar.AutoGear autoGear = TireFrictionCar.AutoGear.Drive;
+        [Tooltip("Idle creep in Drive with no throttle (0..1 of maxDriveTorque). Fades out by driveCreepFadeSpeed.")]
+        [Range(0f, 0.4f)] [SerializeField] float driveCreep = 0.12f;
+        [Tooltip("Forward speed (m/s) where Drive creep has fully faded.")]
+        [Min(0.5f)] [SerializeField] float driveCreepFadeSpeed = 4f;
         [Tooltip("Brake torque per tyre at full brake (N·m).")]
         [Min(0f)][SerializeField] float brakeTorque = 1200f;
         [Tooltip("Brake torque per tyre on handbrake wheels (N·m).")]
@@ -237,35 +241,28 @@ namespace FullThrottleSun.Vehicle
         void IgnoreBodyVsDriveSurface()
         {
             var bodyCols = GetComponentsInChildren<Collider>(true);
-            // SplineInstantiate block* clones are Untagged and not returned by FindObjectsByType —
-            // walk loaded scene roots so body box ignores the drive surface (tyre rays still hit it).
-            // Land Plane stays collidable for off-road. ControllerTesting uses name "Ground".
-            for (int s = 0; s < UnityEngine.SceneManagement.SceneManager.sceneCount; s++)
+            var surfaces = FindObjectsByType<GroundSurface>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+
+            for (int s = 0; s < surfaces.Length; s++)
             {
-                var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(s);
-                if (!scene.isLoaded)
+                var surface = surfaces[s];
+                if (surface == null || !surface.supportCarBody)
                     continue;
-                var roots = scene.GetRootGameObjects();
-                for (int r = 0; r < roots.Length; r++)
+                var ground = surface.GetComponent<Collider>();
+                if (ground == null || ground.attachedRigidbody == rb)
+                    continue;
+
+                for (int b = 0; b < bodyCols.Length; b++)
                 {
-                    var cols = roots[r].GetComponentsInChildren<Collider>(true);
-                    for (int i = 0; i < cols.Length; i++)
-                    {
-                        var ground = cols[i];
-                        if (ground == null || ground.attachedRigidbody == rb)
-                            continue;
-                        string n = ground.gameObject.name;
-                        if (n != "Ground" && !n.StartsWith("block", System.StringComparison.Ordinal))
-                            continue;
-                        for (int b = 0; b < bodyCols.Length; b++)
-                        {
-                            var body = bodyCols[b];
-                            if (body != null && body.enabled && !body.isTrigger)
-                                Physics.IgnoreCollision(body, ground, true);
-                        }
-                    }
+                    var body = bodyCols[b];
+                    if (body == null || !body.enabled || body.isTrigger)
+                        continue;
+                    if (body.attachedRigidbody != null && body.attachedRigidbody != rb)
+                        continue;
+                    Physics.IgnoreCollision(body, ground, true);
                 }
             }
+
         }
 
         void OnValidate()
@@ -302,10 +299,11 @@ namespace FullThrottleSun.Vehicle
 
             float drive = 0f;
             float brake = brakeInput;
+            float throttle = EffectiveThrottle(forwardSpeed);
             switch (autoGear)
             {
                 case TireFrictionCar.AutoGear.Drive:
-                    drive = throttleInput;
+                    drive = throttle;
                     break;
                 case TireFrictionCar.AutoGear.Reverse:
                     drive = -throttleInput * reverseTorqueScale;
@@ -315,11 +313,11 @@ namespace FullThrottleSun.Vehicle
                     break;
             }
 
-            if (throttleInput > 0f)
+            if (throttle > 0f)
             {
                 if (autoGear == TireFrictionCar.AutoGear.Drive && forwardSpeed < -1f)
                 {
-                    brake = Mathf.Max(brake, throttleInput);
+                    brake = Mathf.Max(brake, throttle);
                     drive = 0f;
                 }
                 else if (autoGear == TireFrictionCar.AutoGear.Reverse && forwardSpeed > 1f)
@@ -577,6 +575,18 @@ namespace FullThrottleSun.Vehicle
             return Mathf.Max(front, yaw);
         }
 
+        float EffectiveThrottle(float forwardSpeed)
+        {
+            float t = throttleInput;
+            if (autoGear != TireFrictionCar.AutoGear.Drive || driveCreep <= 0f)
+                return t;
+            if (brakeInput > 0.05f || handbrakeInput)
+                return t;
+
+            float fade = 1f - Mathf.Clamp01(Mathf.Abs(forwardSpeed) / Mathf.Max(0.5f, driveCreepFadeSpeed));
+            return Mathf.Max(t, driveCreep * fade);
+        }
+
         void ReadInput()
         {
             throttleInput = VirtualController.GetTrigger(ControllerHand.Right);
@@ -586,6 +596,22 @@ namespace FullThrottleSun.Vehicle
             steerInput = 0f;
             if (useGyroSteering && VirtualController.ActiveKind == ControllerKind.PlayStation)
                 ReadGyroSteering();
+
+            if (!SettingsMenu.IsOpen && !KeyboardBindings.IsListening)
+            {
+                bool kbThrottle = KeyboardBindings.IsPressed(KeyboardAction.Throttle);
+                bool kbBrake = KeyboardBindings.IsPressed(KeyboardAction.Brake);
+                bool kbHandbrake = KeyboardBindings.IsPressed(KeyboardAction.Handbrake);
+                bool kbSteer = KeyboardBindings.IsPressed(KeyboardAction.SteerLeft)
+                               || KeyboardBindings.IsPressed(KeyboardAction.SteerRight);
+                if (kbThrottle || kbBrake || kbHandbrake || kbSteer)
+                {
+                    throttleInput = kbThrottle ? 1f : 0f;
+                    brakeInput = kbBrake ? 1f : 0f;
+                    handbrakeInput = kbHandbrake;
+                }
+                steerInput += KeyboardBindings.GetAxis(KeyboardAction.SteerLeft, KeyboardAction.SteerRight);
+            }
 
             steerInput = Mathf.Clamp(steerInput + wheelInput, -1f, 1f);
         }

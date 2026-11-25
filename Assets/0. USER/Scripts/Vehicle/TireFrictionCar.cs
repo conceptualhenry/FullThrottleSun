@@ -102,6 +102,10 @@ namespace FullThrottleSun.Vehicle
         [Min(0.1f)] [SerializeField] float maxReverseSpeed = 8f;
         [Tooltip("R / N / D. ShiftLever writes this; defaults to Drive so the car still moves without a shifter.")]
         [SerializeField] AutoGear autoGear = AutoGear.Drive;
+        [Tooltip("Idle creep in Drive with no throttle (0..1 of maxDriveTorque). Fades out by driveCreepFadeSpeed.")]
+        [Range(0f, 0.4f)] [SerializeField] float driveCreep = 0.12f;
+        [Tooltip("Forward speed (m/s) where Drive creep has fully faded.")]
+        [Min(0.5f)] [SerializeField] float driveCreepFadeSpeed = 4f;
         [Tooltip("Brake torque per tyre at full brake (N·m).")]
         [Min(0f)] [SerializeField] float brakeTorque = 1200f;
         [Tooltip("Brake torque per tyre on handbrake wheels (N·m).")]
@@ -178,6 +182,10 @@ namespace FullThrottleSun.Vehicle
         public float BrakeInput => brakeInput;
         public bool HandbrakeInput => handbrakeInput;
         public AutoGear Gear => autoGear;
+        /// <summary>Signed forward speed in km/h (negative when reversing).</summary>
+        public float SpeedKmh => speedKmh;
+        /// <summary>0..1 throttle input this frame.</summary>
+        public float ThrottleInput => throttleInput;
 
         public void SetGear(AutoGear gear) => autoGear = gear;
         /// <summary>Front wheel steer angle in degrees; right positive.</summary>
@@ -236,61 +244,26 @@ namespace FullThrottleSun.Vehicle
             IgnoreBodyVsDriveSurface();
         }
 
+        int driveSurfaceIgnoreFrames = 8;
+
+        /// <summary>Call after TestRoad rebuilds so new Asphalt/Ice/Wet meshes stay ignored by the body.</summary>
+        public void RefreshDriveSurfaceIgnore() => IgnoreBodyVsDriveSurface();
+
         void Start()
         {
-            // Road may be spawned after Awake in some scenes.
+            // Road / GroundSurface pieces may spawn after Awake.
             IgnoreBodyVsDriveSurface();
-        }
-
-        void IgnoreBodyVsDriveSurface()
-        {
-            var bodyCols = GetComponentsInChildren<Collider>(true);
-            // SplineInstantiate block* clones are Untagged and not returned by FindObjectsByType —
-            // walk loaded scene roots so body box ignores the drive surface (tyre rays still hit it).
-            // Land Plane stays collidable for off-road. ControllerTesting uses name "Ground".
-            for (int s = 0; s < UnityEngine.SceneManagement.SceneManager.sceneCount; s++)
-            {
-                var scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(s);
-                if (!scene.isLoaded)
-                    continue;
-                var roots = scene.GetRootGameObjects();
-                for (int r = 0; r < roots.Length; r++)
-                {
-                    var cols = roots[r].GetComponentsInChildren<Collider>(true);
-                    for (int i = 0; i < cols.Length; i++)
-                    {
-                        var ground = cols[i];
-                        if (ground == null || ground.attachedRigidbody == rb)
-                            continue;
-                        string n = ground.gameObject.name;
-                        if (n != "Ground" && !n.StartsWith("block", System.StringComparison.Ordinal))
-                            continue;
-                        for (int b = 0; b < bodyCols.Length; b++)
-                        {
-                            var body = bodyCols[b];
-                            if (body != null && body.enabled && !body.isTrigger)
-                                Physics.IgnoreCollision(body, ground, true);
-                        }
-                    }
-                }
-            }
-        }
-
-        void OnValidate()
-        {
-            if (rb != null)
-                rb.centerOfMass = centerOfMass;
-            if (returnSlipHard < returnSlipSoft)
-                returnSlipHard = returnSlipSoft;
-        }
-
-        void Update()
-        {
-            ReadInput();
         }
 
         void FixedUpdate()
         {
+            // Re-apply for a few ticks so late TestRoad rebuilds still get ignored.
+            if (driveSurfaceIgnoreFrames > 0)
+            {
+                driveSurfaceIgnoreFrames--;
+                IgnoreBodyVsDriveSurface();
+            }
+
             float dt = Time.fixedDeltaTime;
             float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
             speedKmh = forwardSpeed * 3.6f;
@@ -310,10 +283,11 @@ namespace FullThrottleSun.Vehicle
 
             float drive = 0f;
             float brake = brakeInput;
+            float throttle = EffectiveThrottle(forwardSpeed);
             switch (autoGear)
             {
                 case AutoGear.Drive:
-                    drive = throttleInput;
+                    drive = throttle;
                     break;
                 case AutoGear.Reverse:
                     drive = -throttleInput * reverseTorqueScale;
@@ -324,11 +298,11 @@ namespace FullThrottleSun.Vehicle
             }
 
             // Throttle against travel direction acts as a brake (wrong-way / rolling opposite gear).
-            if (throttleInput > 0f)
+            if (throttle > 0f)
             {
                 if (autoGear == AutoGear.Drive && forwardSpeed < -1f)
                 {
-                    brake = Mathf.Max(brake, throttleInput);
+                    brake = Mathf.Max(brake, throttle);
                     drive = 0f;
                 }
                 else if (autoGear == AutoGear.Reverse && forwardSpeed > 1f)
@@ -367,6 +341,59 @@ namespace FullThrottleSun.Vehicle
             float speed = rb.linearVelocity.magnitude;
             if (speed > 0.01f)
                 rb.AddForce(-rb.linearVelocity * (airDrag * speed));
+        }
+
+        /// <summary>
+        /// Chassis must not rest on drive meshes — suspension rays hold the car up.
+        /// Drive meshes are marked with <see cref="GroundSurface"/> (<c>supportCarBody</c>).
+        /// Raycasts still hit them. Only colliders on <b>this</b> rigidbody are paired
+        /// (toys with their own RB, e.g. Rubik, are skipped).
+        /// </summary>
+        void IgnoreBodyVsDriveSurface()
+        {
+            // Chassis colliders only — not child rigidbodies (Rubik stickers, cans, …).
+            var bodyCols = GetComponentsInChildren<Collider>(true);
+            var surfaces = FindObjectsByType<GroundSurface>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+
+            for (int s = 0; s < surfaces.Length; s++)
+            {
+                var surface = surfaces[s];
+                if (surface == null || !surface.supportCarBody)
+                    continue;
+                var ground = surface.GetComponent<Collider>();
+                if (ground == null || ground.attachedRigidbody == rb)
+                    continue;
+
+                for (int b = 0; b < bodyCols.Length; b++)
+                {
+                    var body = bodyCols[b];
+                    if (body == null || !body.enabled || body.isTrigger)
+                        continue;
+                    // attachedRigidbody is null on static hierarchy under the car RB root —
+                    // those belong to this rb. Skip colliders owned by a different RB.
+                    if (body.attachedRigidbody != null && body.attachedRigidbody != rb)
+                        continue;
+                    Physics.IgnoreCollision(body, ground, true);
+                }
+            }
+
+            // Do NOT auto-ignore a scene object named "Ground".
+            // If the raised road is ignored and Ground is too, the car falls through both.
+            // Tag underlay floors with GroundSurface.supportCarBody = false (default catcher),
+            // and only the drive strips with supportCarBody = true.
+        }
+
+        void OnValidate()
+        {
+            if (rb != null)
+                rb.centerOfMass = centerOfMass;
+            if (returnSlipHard < returnSlipSoft)
+                returnSlipHard = returnSlipSoft;
+        }
+
+        void Update()
+        {
+            ReadInput();
         }
 
         void LateUpdate()
@@ -586,19 +613,53 @@ namespace FullThrottleSun.Vehicle
             return Mathf.Max(front, yaw);
         }
 
+        /// <summary>
+        /// Pedal throttle, plus Drive idle creep when the brakes are off.
+        /// Creep fades with forward speed so it only nudges away from a stop.
+        /// </summary>
+        float EffectiveThrottle(float forwardSpeed)
+        {
+            float t = throttleInput;
+            if (autoGear != AutoGear.Drive || driveCreep <= 0f)
+                return t;
+            if (brakeInput > 0.05f || handbrakeInput)
+                return t;
+
+            float fade = 1f - Mathf.Clamp01(Mathf.Abs(forwardSpeed) / Mathf.Max(0.5f, driveCreepFadeSpeed));
+            return Mathf.Max(t, driveCreep * fade);
+        }
+
+        static float TriggerDeadzone(float v, float dz = 0.1f)
+            => v <= dz ? 0f : (v - dz) / (1f - dz);
+
         void ReadInput()
         {
-            throttleInput = VirtualController.GetTrigger(ControllerHand.Right);
-            brakeInput = VirtualController.GetTrigger(ControllerHand.Left);
+            throttleInput = TriggerDeadzone(VirtualController.GetTrigger(ControllerHand.Right));
+            brakeInput = TriggerDeadzone(VirtualController.GetTrigger(ControllerHand.Left));
             handbrakeInput = VirtualController.GetButton(ControllerButton.Primary, ControllerHand.Right);
 
             steerInput = 0f;
             if (useGyroSteering && VirtualController.ActiveKind == ControllerKind.PlayStation)
                 ReadGyroSteering();
 
-            // Keyboard A/D (remappable). Kept out of the virtual right stick so it does not fight camera look.
-            if (!SettingsMenu.IsOpen)
+            // Keyboard pedals / steer bypass VirtualController so W/S/Space still work when a
+            // gamepad or XR pad is "active" and blocking source handover (gear already did this).
+            // While any drive key is held, own the pedals fully so controller trigger float can't brake you.
+            if (!SettingsMenu.IsOpen && !KeyboardBindings.IsListening)
+            {
+                bool kbThrottle = KeyboardBindings.IsPressed(KeyboardAction.Throttle);
+                bool kbBrake = KeyboardBindings.IsPressed(KeyboardAction.Brake);
+                bool kbHandbrake = KeyboardBindings.IsPressed(KeyboardAction.Handbrake);
+                bool kbSteer = KeyboardBindings.IsPressed(KeyboardAction.SteerLeft)
+                               || KeyboardBindings.IsPressed(KeyboardAction.SteerRight);
+                if (kbThrottle || kbBrake || kbHandbrake || kbSteer)
+                {
+                    throttleInput = kbThrottle ? 1f : 0f;
+                    brakeInput = kbBrake ? 1f : 0f;
+                    handbrakeInput = kbHandbrake;
+                }
                 steerInput += KeyboardBindings.GetAxis(KeyboardAction.SteerLeft, KeyboardAction.SteerRight);
+            }
 
             steerInput = Mathf.Clamp(steerInput + wheelInput, -1f, 1f);
         }

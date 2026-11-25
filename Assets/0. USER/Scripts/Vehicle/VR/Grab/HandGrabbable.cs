@@ -88,7 +88,10 @@ namespace FullThrottleSun.Vehicle
             if (rb != null)
             {
                 // Sit still on the car until first grab; free physics starts on release.
+                // detectCollisions off while parked: a kinematic child RB must not generate
+                // contacts against the road / chassis or it can pin the whole car.
                 rb.isKinematic = true;
+                rb.detectCollisions = false;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             }
@@ -147,10 +150,30 @@ namespace FullThrottleSun.Vehicle
         {
             if (!VrGrabBroker.ShouldFreeGrabBegin(this, hand))
                 return;
+            BeginGrab(hand, requireClaim: true);
+        }
+
+        /// <summary>
+        /// Force-grab for hand-off (e.g. Rubik's cube transfers hold to the other hand).
+        /// Skips broker arbitration; still requires a free claim unless already owned by us.
+        /// </summary>
+        public bool TryForceGrab(ControllerHand hand)
+        {
+            if (held && heldHand == hand)
+                return true;
+            if (held)
+                ReleaseInternal(dropPhysics: false);
+            return BeginGrab(hand, requireClaim: true);
+        }
+
+        bool BeginGrab(ControllerHand hand, bool requireClaim)
+        {
             if (!VrGrip.TryGetWorldPose(hand, out Vector3 pos, out Quaternion rot))
-                return;
-            if (!VrHandClaim.TryClaim(hand, this))
-                return;
+                return false;
+            if (requireClaim && !VrHandClaim.TryClaim(hand, this) && !VrHandClaim.IsOwnedBy(hand, this))
+                return false;
+            if (!VrHandClaim.IsOwnedBy(hand, this))
+                VrHandClaim.TryClaim(hand, this);
 
             held = true;
             heldHand = hand;
@@ -163,6 +186,7 @@ namespace FullThrottleSun.Vehicle
             if (rb != null)
             {
                 rb.isKinematic = true;
+                rb.detectCollisions = true;
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
             }
@@ -177,9 +201,12 @@ namespace FullThrottleSun.Vehicle
             throwVelocity = Vector3.zero;
             throwAngularVelocity = Vector3.zero;
             hasMotionSample = false;
+            return true;
         }
 
-        void Release()
+        void Release() => ReleaseInternal(dropPhysics: true);
+
+        void ReleaseInternal(bool dropPhysics)
         {
             if (!held)
                 return;
@@ -188,13 +215,14 @@ namespace FullThrottleSun.Vehicle
             held = false;
             VrHandClaim.Release(hand, this);
 
-            if (!physicsOnRelease || rb == null)
+            if (!dropPhysics || !physicsOnRelease || rb == null)
                 return;
 
             if (transform.parent != null)
                 transform.SetParent(null, true);
 
             rb.isKinematic = false;
+            rb.detectCollisions = true;
             Vector3 v = Vector3.ClampMagnitude(throwVelocity * throwVelocityScale, maxThrowSpeed);
             rb.linearVelocity = v;
             rb.angularVelocity = throwAngularVelocity * throwAngularScale;
