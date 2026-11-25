@@ -7471,13 +7471,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TimerManager
   volume: {fileID: 1994297259}
   vignette: {fileID: 0}
+  reasonText: {fileID: 57903992}
+  lostScreen: {fileID: 1655601322}
+  duration: 1.5
+  maxIntensity: 1
   energyTimer: 15
   maxTime: 15
   tempTimer: 0
-  duration: 1.5
-  maxIntensity: 1
-  reasonText: {fileID: 57903992}
-  lostScreen: {fileID: 1655601322}
 --- !u!1 &2091885579
 GameObject:
   m_ObjectHideFlags: 0
@@ -7755,6 +7755,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d0a312fc29153d4aacaadc6b92eaf11, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EventManager
+  carMDoorMesh: {fileID: 1652587684}
+  elementIndex: 2
 --- !u!1 &2105333162
 GameObject:
   m_ObjectHideFlags: 0
