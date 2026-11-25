@@ -3,7 +3,7 @@ using UnityEngine;
 public class Chunk : MonoBehaviour
 {
     public Vector3 centerPt;
-    [SerializeField] private int speedLimit;
+    [SerializeField] private int speedLimit = 60;
 
     void Start()
     {
