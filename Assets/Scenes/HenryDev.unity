@@ -3197,6 +3197,7 @@ GameObject:
   - component: {fileID: 1814939030}
   - component: {fileID: 1814939029}
   - component: {fileID: 1814939028}
+  - component: {fileID: 1814939037}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -3384,7 +3385,7 @@ MonoBehaviour:
   rollingResistance: 0.015
   lowSpeedReference: 3
   maxDriveTorque: 2000
-  maxSpeed: 40
+  maxSpeed: 60
   reverseTorqueScale: 0.5
   maxReverseSpeed: 8
   autoGear: 1
@@ -3535,6 +3536,21 @@ Transform:
   - {fileID: 413577032}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1814939037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1814939027}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 198cc2ec218d3fc4ba9c759e20216fc1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MilesTracker
+  milesDriven: 0
+  mph: 0
+  milesDisplay: {fileID: 0}
 --- !u!1 &1856975606
 GameObject:
   m_ObjectHideFlags: 0

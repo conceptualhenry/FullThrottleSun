@@ -53,6 +53,9 @@ public class RadioPlayer : MonoBehaviour
         currentPlaying.getPlaybackState(out state);
         if (state == PLAYBACK_STATE.STOPPED)
         {
+            currentPlaying.stop(STOP_MODE.IMMEDIATE);
+            currentPlaying.release();
+
             currentPlaying = FMODUnity.RuntimeManager.CreateInstance(ChooseNewRadio());
             currentPlaying.start();
         }
