@@ -3,14 +3,17 @@ using UnityEngine;
 namespace FullThrottleSun.Vehicle
 {
     /// <summary>
-    /// Placeholder speedo + tacho needles. Speed reads <see cref="TireFrictionCar.SpeedKmh"/>.
-    /// RPM is faked from gear + throttle + speed (linked to R/N/D).
+    /// Placeholder speedo + tacho needles. Hierarchy under this object is scene-editable:
+    /// drag <c>Speedometer</c> / <c>Tachometer</c> (or this root) in the Scene view.
+    /// Materials live at <c>Assets/0. USER/Materials/Dashboard</c> — edit those for color.
+    /// Speed reads <see cref="TireFrictionCar.SpeedKmh"/>; RPM is faked from gear + throttle + speed.
     /// </summary>
     public class DashboardGauges : MonoBehaviour
     {
         [SerializeField] TireFrictionCar car;
         [SerializeField] Transform speedNeedle;
         [SerializeField] Transform rpmNeedle;
+        [SerializeField] TextMesh gearLabel;
 
         [Header("Speedo")]
         [SerializeField] float maxSpeedKmh = 160f;
@@ -25,14 +28,48 @@ namespace FullThrottleSun.Vehicle
         [Tooltip("How fast needles ease toward the target.")]
         [SerializeField] float needleSmooth = 10f;
 
+        [Header("Gear readout")]
+        [SerializeField] Color gearColorDrive = new Color(0.35f, 0.95f, 0.45f);
+        [SerializeField] Color gearColorNeutral = new Color(0.95f, 0.9f, 0.35f);
+        [SerializeField] Color gearColorReverse = new Color(0.95f, 0.35f, 0.3f);
+
         float shownSpeed;
         float shownRpm;
+        TireFrictionCar.AutoGear shownGear = (TireFrictionCar.AutoGear)(-1);
 
         void Awake()
+        {
+            ResolveRefs();
+        }
+
+#if UNITY_EDITOR
+        void OnValidate()
+        {
+            ResolveRefs();
+        }
+#endif
+
+        void ResolveRefs()
         {
             if (car == null)
                 car = GetComponentInParent<TireFrictionCar>()
                       ?? FindAnyObjectByType<TireFrictionCar>(FindObjectsInactive.Include);
+
+            if (speedNeedle == null)
+            {
+                var t = transform.Find("Speedometer/NeedlePivot");
+                if (t != null) speedNeedle = t;
+            }
+            if (rpmNeedle == null)
+            {
+                var t = transform.Find("Tachometer/NeedlePivot");
+                if (t != null) rpmNeedle = t;
+            }
+            if (gearLabel == null)
+            {
+                var t = transform.Find("GearLabel");
+                if (t != null) gearLabel = t.GetComponent<TextMesh>();
+            }
         }
 
         void LateUpdate()
@@ -49,6 +86,29 @@ namespace FullThrottleSun.Vehicle
 
             SetNeedle(speedNeedle, shownSpeed / Mathf.Max(1f, maxSpeedKmh), speedNeedleMinAngle, speedNeedleMaxAngle);
             SetNeedle(rpmNeedle, (shownRpm - idleRpm) / Mathf.Max(1f, redlineRpm - idleRpm), rpmNeedleMinAngle, rpmNeedleMaxAngle);
+            UpdateGearLabel(car.Gear);
+        }
+
+        void UpdateGearLabel(TireFrictionCar.AutoGear gear)
+        {
+            if (gearLabel == null || gear == shownGear)
+                return;
+            shownGear = gear;
+            switch (gear)
+            {
+                case TireFrictionCar.AutoGear.Reverse:
+                    gearLabel.text = "R";
+                    gearLabel.color = gearColorReverse;
+                    break;
+                case TireFrictionCar.AutoGear.Neutral:
+                    gearLabel.text = "N";
+                    gearLabel.color = gearColorNeutral;
+                    break;
+                default:
+                    gearLabel.text = "D";
+                    gearLabel.color = gearColorDrive;
+                    break;
+            }
         }
 
         float FakeRpm(TireFrictionCar c)

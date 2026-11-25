@@ -55,8 +55,10 @@ namespace FullThrottleSun.Controller
             var left = next != null ? next.GetState(ControllerHand.Left) : default;
             var right = next != null ? next.GetState(ControllerHand.Right) : default;
 
-            // Only hand over while the current device is idle, so two devices in use at once don't flicker.
-            if (next == null || !(left.HasInput || right.HasInput))
+            // Hand over when the current device is idle. Keyboard may interrupt even while another
+            // device still reports noise (stick drift / XR floats), matching how gear keys already work.
+            bool currentBusy = next != null && (left.HasInput || right.HasInput);
+            if (next == null || !currentBusy)
             {
                 foreach (var source in sources)
                 {
@@ -72,6 +74,22 @@ namespace FullThrottleSun.Controller
                     right = sourceRight;
                     if (used)
                         break;
+                }
+            }
+            else
+            {
+                foreach (var source in sources)
+                {
+                    if (source == next || !source.IsAvailable || source.Kind != ControllerKind.Keyboard)
+                        continue;
+                    var sourceLeft = source.GetState(ControllerHand.Left);
+                    var sourceRight = source.GetState(ControllerHand.Right);
+                    if (!(sourceLeft.HasInput || sourceRight.HasInput))
+                        continue;
+                    next = source;
+                    left = sourceLeft;
+                    right = sourceRight;
+                    break;
                 }
             }
 

@@ -88,7 +88,10 @@ namespace FullThrottleSun.Vehicle
             if (rb != null)
             {
                 // Sit still on the car until first grab; free physics starts on release.
+                // detectCollisions off while parked: a kinematic child RB must not generate
+                // contacts against the road / chassis or it can pin the whole car.
                 rb.isKinematic = true;
+                rb.detectCollisions = false;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             }
@@ -183,6 +186,7 @@ namespace FullThrottleSun.Vehicle
             if (rb != null)
             {
                 rb.isKinematic = true;
+                rb.detectCollisions = true;
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
             }
@@ -218,6 +222,7 @@ namespace FullThrottleSun.Vehicle
                 transform.SetParent(null, true);
 
             rb.isKinematic = false;
+            rb.detectCollisions = true;
             Vector3 v = Vector3.ClampMagnitude(throwVelocity * throwVelocityScale, maxThrowSpeed);
             rb.linearVelocity = v;
             rb.angularVelocity = throwAngularVelocity * throwAngularScale;
